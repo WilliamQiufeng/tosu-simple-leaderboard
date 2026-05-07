@@ -1,0 +1,50 @@
+[
+    {
+        "uniqueID": "api",
+        "type": "text",
+        "title": "osu! API Key",
+        "description": "Required for leaderboard score lookups",
+        "options": "",
+        "value": ""
+    },
+    {
+        "uniqueID": "background",
+        "type": "text",
+        "title": "Background",
+        "description": "Use white or black",
+        "options": "",
+        "value": "white"
+    },
+    {
+        "uniqueID": "opacity",
+        "type": "text",
+        "title": "Opacity",
+        "description": "Use 100% or 0%",
+        "options": "",
+        "value": "100%"
+    },
+    {
+        "uniqueID": "profile",
+        "type": "text",
+        "title": "Profile Display",
+        "description": "Use hide or reveal",
+        "options": "",
+        "value": "hide"
+    },
+    {
+        "uniqueID": "sub",
+        "type": "text",
+        "title": "Secondary Stat",
+        "description": "Use acc or combo",
+        "options": "",
+        "value": "acc"
+    },
+    {
+        "uniqueID": "uid",
+        "type": "text",
+        "title": "osu! User ID",
+        "description": "Used for the current player avatar",
+        "options": "",
+        "value": ""
+    }
+]

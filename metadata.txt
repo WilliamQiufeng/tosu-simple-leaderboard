@@ -1,0 +1,6 @@
+Usecase: ingame,obs-overlay
+Name: Simple Leaderboard
+Version: 0.2
+Author: 2ky, Q14NXu4N, WilliamQiufeng
+CompatibleWith: tosu
+Resolution: 500x800
