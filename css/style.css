@@ -46,7 +46,7 @@ html {
     left: 0;
     width:100%;
     height: calc(100% + 20px);
-    background-image: url("../parts/background1.jpg");
+    background-image: url("../parts/background1.png");
     background-size: cover;
     opacity: 1;
 }
