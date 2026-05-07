@@ -769,33 +769,7 @@ export default WebSocketManager;
  * @property {number} play.pp.detailed.fc.flashlight
  * @property {number} play.pp.detailed.fc.total
  * @property {number} play.unstableRate
- * @property {object[]} leaderboard
- * @property {boolean} leaderboard.isFailed
- * @property {number} leaderboard.position
- * @property {number} leaderboard.team
- * @property {number} leaderboard.id
- * @property {string} leaderboard.name
- * @property {number} leaderboard.score
- * @property {number} leaderboard.accuracy
- * @property {object} leaderboard.hits
- * @property {number} leaderboard.hits.0
- * @property {number} leaderboard.hits.50
- * @property {number} leaderboard.hits.100
- * @property {number} leaderboard.hits.300
- * @property {number} leaderboard.hits.geki This is also used as the 320's count in the osu!mania ruleset
- * @property {number} leaderboard.hits.katu This is also used as the 200's count in the osu!mania ruleset
- * @property {object} leaderboard.combo
- * @property {number} leaderboard.combo.current
- * @property {number} leaderboard.combo.max
- * @property {object} leaderboard.mods
- * @property {string} leaderboard.mods.checksum
- * @property {number} leaderboard.mods.number
- * @property {string} leaderboard.mods.name
- * @property {object[]} leaderboard.mods.array
- * @property {string} leaderboard.mods.array.acronym
- * @property {object} [leaderboard.mods.array.settings] This exists only when playing osu!(lazer). You must get the settings manually, e.g. from the `/json/v2` response preview
- * @property {number} leaderboard.mods.rate
- * @property {'XH' | 'X' | 'SH' | 'S' | 'A' | 'B' | 'C' | 'D'} leaderboard.rank
+ * @property {WEBSOCKET_V2_LEADERBOARD[]} leaderboard
  * @property {object} performance
  * @property {object} performance.accuracy
  * @property {number} performance.accuracy.90
@@ -1020,4 +994,34 @@ export default WebSocketManager;
  * @property {object} tourney.keys.m2
  * @property {boolean} tourney.keys.m2.isPressed
  * @property {number} tourney.keys.m2.count
+ */
+
+/**
+ * @typedef {object} WEBSOCKET_V2_LEADERBOARD
+ * @property {boolean} isFailed
+ * @property {number} position
+ * @property {number} team
+ * @property {number} id
+ * @property {string} name
+ * @property {number} score
+ * @property {number} accuracy
+ * @property {object} hits
+ * @property {number} hits.0
+ * @property {number} hits.50
+ * @property {number} hits.100
+ * @property {number} hits.300
+ * @property {number} hits.geki This is also used as the 320's count in the osu!mania ruleset
+ * @property {number} hits.katu This is also used as the 200's count in the osu!mania ruleset
+ * @property {object} combo
+ * @property {number} combo.current
+ * @property {number} combo.max
+ * @property {object} mods
+ * @property {string} mods.checksum
+ * @property {number} mods.number
+ * @property {string} mods.name
+ * @property {object[]} mods.array
+ * @property {string} mods.array.acronym
+ * @property {object} [mods.array.settings] This exists only when playing osu!(lazer). You must get the settings manually, e.g. from the `/json/v2` response preview
+ * @property {number} mods.rate
+ * @property {'XH' | 'X' | 'SH' | 'S' | 'A' | 'B' | 'C' | 'D'} rank
  */

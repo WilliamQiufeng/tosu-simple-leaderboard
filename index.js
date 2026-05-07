@@ -70,7 +70,8 @@ const SUB_COMBO = 2;
 let state;
 let beatmap_score = {};
 let beatmap_data = {};
-let slots = {};
+/** @type {WEBSOCKET_V2_LEADERBOARD[]} */
+let slots = [];
 
 let rank_container = document.getElementById("rank_container");
 let leaderboard_section = document.getElementById("leaderboard_section");
@@ -262,11 +263,12 @@ function create_ranking_panel() {
 
 socket.api_v2((data) => {
     try {
+        console.log(data);
         let play = data.play;
         api = contents.api;
         uid = contents.uid;
 
-        let t_player = data.profile.name;
+        t_player = play.playerName;
         if (t_player == '') {
             t_player = "unknown";
         }
@@ -339,7 +341,7 @@ socket.api_v2((data) => {
                                             let rank_percent = document.getElementById(`rank_percent_${i}`);
                                             rank_id.innerHTML = slots[i].name;
                                             rank_score.innerHTML = slots[i].score.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                                            rank_percent.innerHTML = slots[i].maxCombo.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
+                                            rank_percent.innerHTML = slots[i].combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
 
                                             rank_id.style.color = '#949D9D';
                                             rank_score.style.color = '#949D9D';
@@ -422,7 +424,7 @@ socket.api_v2((data) => {
                                     let rank_percent = document.getElementById(`rank_percent_${i}`);
                                     rank_id.innerHTML = slots[i].name;
                                     rank_score.innerHTML = slots[i].score.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                                    rank_percent.innerHTML = slots[i].maxCombo.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
+                                    rank_percent.innerHTML = slots[i].combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
 
                                     rank_id.style.color = '#949D9D';
                                     rank_score.style.color = '#949D9D';
