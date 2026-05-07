@@ -13,43 +13,6 @@ let api = "";
 let axios = window.axios;
 let uid = "";
 
-socket.sendCommand('getSettings', encodeURI(window.COUNTER_PATH));
-socket.commands((data) => {
-    try {
-        const { command, message } = data;
-
-        if (command == 'getSettings') {
-            if (message['api'] != null) {
-                contents.api = message['api'];
-                api = contents.api;
-            }
-
-            if (message['background'] != null) {
-                contents.background = message['background'];
-            }
-
-            if (message['opacity'] != null) {
-                contents.opacity = message['opacity'];
-            }
-
-            if (message['profile'] != null) {
-                contents.profile = message['profile'];
-            }
-
-            if (message['sub'] != null) {
-                contents.sub = message['sub'];
-            }
-
-            if (message['uid'] != null) {
-                contents.uid = message['uid'];
-                uid = contents.uid;
-            }
-        }
-    } catch (error) {
-        console.log(error);
-    }
-});
-
 const FILTERS_V2 = [
     'play',
     'profile',
@@ -123,34 +86,75 @@ let ranked_check = 0;
 
 var v2 = 0x20000000;
 
-function setting() {
-    if (contents.profile == "hide") {
-        p_index = PROFILE_HIDE;
-    }
-    else if (contents.profile == "reveal") {
-        p_index = PROFILE_REVEAL;
-    }
 
-    if (contents.sub == "acc") {
-        s_index = SUB_ACC;
-    }
-    else if (contents.sub == "combo") {
-        s_index = SUB_COMBO;
-    }
 
-    if (contents.background == "black") {
-        bg_value = 'rgba( 0, 0, 0, 0.35 )';
+socket.sendCommand('getSettings', encodeURI(window.COUNTER_PATH));
+
+socket.commands((data) => {
+    try {
+        const { command, message } = data;
+
+        if (command == 'getSettings') {
+            if (message['api'] != null) {
+                contents.api = message['api'];
+                api = contents.api;
+            }
+
+            if (message['background'] != null) {
+                contents.background = message['background'];
+
+                if (contents.background == "black") {
+                    bg_value = 'rgba( 0, 0, 0, 0.35 )';
+                }
+                else if (contents.background == "white") {
+                    bg_value = 'rgba( 255, 255, 255, 0.1 )';
+                }
+            }
+
+            if (message['opacity'] != null) {
+                contents.opacity = message['opacity'];
+
+                if (contents.opacity == "100%") {
+                    leaderboard_section.style.background = "black";
+                }
+                else if (contents.opacity == "0%") {
+                    leaderboard_section.style.background = "";
+                }
+            }
+
+            if (message['profile'] != null) {
+                contents.profile = message['profile'];
+
+                if (contents.profile == "hide") {
+                    p_index = PROFILE_HIDE;
+                }
+                else if (contents.profile == "reveal") {
+                    p_index = PROFILE_REVEAL;
+                }
+            }
+
+            if (message['sub'] != null) {
+                contents.sub = message['sub'];
+
+                if (contents.sub == "acc") {
+                    s_index = SUB_ACC;
+                }
+                else if (contents.sub == "combo") {
+                    s_index = SUB_COMBO;
+                }
+
+            }
+
+            if (message['uid'] != null) {
+                contents.uid = message['uid'];
+                uid = contents.uid;
+            }
+        }
+    } catch (error) {
+        console.log(error);
     }
-    else if (contents.background == "white") {
-        bg_value = 'rgba( 255, 255, 255, 0.1 )';
-    }
-    if (contents.opacity == "100%") {
-        leaderboard_section.style.background = "black";
-    }
-    else if (contents.opacity == "0%") {
-        leaderboard_section.style.background = "";
-    }
-}
+});
+
 
 function isEmptyObject(param) {
     return Object.keys(param).length === 0 && param.constructor === Object;
@@ -266,7 +270,7 @@ socket.api_v2((data) => {
         if (t_player == '') {
             t_player = "unknown";
         }
-        
+
         if (slots !== data.leaderboard && state == 2) {
             slots = data.leaderboard;
         }
