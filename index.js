@@ -68,6 +68,7 @@ const PROFILE_REVEAL = 2;
 let s_index;
 const SUB_ACC = 1;
 const SUB_COMBO = 2;
+const SUB_NONE = 0;
 
 const RANKED_STATUS_UNKNOWN = 0;
 const RANKED_STATUS_NOT_SUBMITTED = 1;
@@ -156,7 +157,7 @@ function beatmapScoreToLeaderboardSlot(beatmapScore) {
         id: beatmapScore["user_id"],
         name: beatmapScore["username"],
         score: parseInt(beatmapScore["score"]),
-        maxCombo: parseInt(beatmapScore["maxCombo"]),
+        maxCombo: parseInt(beatmapScore["maxcombo"]),
         accuracy: accuracy,
         hits: hits
     };
@@ -216,6 +217,9 @@ socket.commands((data) => {
                 else if (contents.sub == "combo") {
                     s_index = SUB_COMBO;
                 }
+                else {
+                    s_index = SUB_NONE;
+                }
 
             }
 
@@ -235,8 +239,29 @@ function isEmptyObject(param) {
     return Object.keys(param).length === 0 && param.constructor === Object;
 }
 
+function formatAccuracy(accuracy) {
+    return accuracy.toFixed(2) + '%';
+}
+function formatCombo(combo) {
+    return combo.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
+}
+
+function setSubsection(subsection, accuracy, combo) {
+    if (s_index == SUB_ACC) {
+        subsection.innerHTML = formatAccuracy(accuracy);
+        subsection.style.opacity = 1;
+    }
+    else if (s_index == SUB_COMBO) {
+        subsection.innerHTML = formatCombo(combo);
+        subsection.style.opacity = 1;
+    }
+    else {
+        subsection.style.opacity = 0;
+    }
+
+}
+
 /**
- * 
  * @param {LeaderboardSlot[]} slots 
  * @param {string} rankingTitle 
  */
@@ -263,7 +288,8 @@ function load_slots(slots, rankingTitle) {
         let rank_percent = document.getElementById(`rank_percent_${i}`);
         rank_id.innerHTML = slots[i].name;
         rank_score.innerHTML = slots[i].score.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        rank_percent.innerHTML = slots[i].maxCombo.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
+
+        setSubsection(rank_percent, slots[i].accuracy, slots[i].maxCombo);
 
         rank_id.style.color = '#949D9D';
         rank_score.style.color = '#949D9D';
@@ -514,20 +540,7 @@ socket.api_v2((data) => {
                 }
                 rank_score_now.innerHTML = expected_temp.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-                if (t_total !== 0) {
-                    if (hasOnlineLeaderboard || ranked_check == 1) {
-                        if (s_index == SUB_ACC) {
-                            let acc_1 = 50 * play.hits[50] + 100 * play.hits[100] + 200 * play.hits.katu + 300 * (play.hits[300] + play.hits.geki);
-                            let acc_2 = 300 * (play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0] + play.hits.geki);
-                            rank_percent_now.innerHTML = (acc_1 / acc_2 * 100).toFixed(2) + '%';
-                        }
-                        else if (s_index == SUB_COMBO) {
-                            rank_percent_now.innerHTML = play.combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
-                        }
-                    } else if (rankedStatus == RANKED_STATUS_PENDING || ranked_check == 2) {
-                        rank_percent_now.innerHTML = play.combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
-                    }
-                }
+                setSubsection(rank_percent_now, play.accuracy, play.combo.current);
                 update_leaderboard(expected_temp);
             }
         }

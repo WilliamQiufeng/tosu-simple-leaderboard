@@ -147,7 +147,18 @@ html {
     transform: translateY(25px);
 }
 .rank_percent{
-   display: none;
+    position: absolute;
+    top: 5px;
+    left: 175px;
+    width: 175px;
+    color: azure;
+    font-family: TOMMY;
+    font-size: 24pt;
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 1;
 }
 .rank{
     position: absolute;
