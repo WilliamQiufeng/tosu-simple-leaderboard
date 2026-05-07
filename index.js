@@ -101,6 +101,10 @@ var v2 = 0x20000000;
 /** @type {LeaderboardSlot[]} */
 let leaderboard = [];
 
+const LEADERBOARD_SLOT = 0;
+const LEADERBOARD_API = 1;
+let leaderboard_type = LEADERBOARD_SLOT;
+
 /**
  * @typedef {Object} LeaderboardSlot
  * @property {string} id
@@ -389,6 +393,26 @@ function update_leaderboard(expected_temp) {
     }
 }
 
+function reset() {
+
+    beatmap_data = {};
+    beatmap_score = {};
+
+    isCompleteRank = false;
+    leaderboard_section.style.opacity = 0;
+    document.getElementById("ranking_title").style.opacity = "0";
+
+    ranked_check = 0;
+
+    rank_container.innerHTML = '';
+    position = 0;
+    rank_container.style.top = '-6900px';
+    slots = [];
+
+    leaderboard = [];
+    leaderboard_type = LEADERBOARD_SLOT;
+}
+
 socket.api_v2((data) => {
     try {
         if (!settingsInitialized) {
@@ -406,7 +430,9 @@ socket.api_v2((data) => {
 
         if (slots !== data.leaderboard && state === "play") {
             slots = data.leaderboard;
-            leaderboard = data.leaderboard.map(slotToLeaderboardSlot);
+            if (leaderboard_type === LEADERBOARD_SLOT) {
+                leaderboard = data.leaderboard.map(slotToLeaderboardSlot);
+            }
         }
         if (t_total !== play.hits.geki + play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0]) {
             t_total = play.hits.geki + play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0];
@@ -443,55 +469,23 @@ socket.api_v2((data) => {
                     Promise.resolve(firstResp.data[0]).then((data) => Object.assign(beatmap_data, data));
                     Promise.resolve(secondResp.data).then((data) => {
                         Object.assign(beatmap_score, data);
-                        leaderboard = data.map(beatmapScoreToLeaderboardSlot);
+                        if (data.length > slots.length) {
+                            leaderboard_type = LEADERBOARD_API;
+                            leaderboard = data.map(beatmapScoreToLeaderboardSlot);
+                        }
                     });
                 })).catch((error) => {
                     console.error(error);
                 });
-                if (rankedStatus == RANKED_STATUS_UNKNOWN) {
-                    setTimeout(function () {
-                        if (isEmptyObject(beatmap_data) !== true) {
-                            var s = beatmap_data.approved;
-                            console.log("111")
-                            load_slots(leaderboard, "Global Ranking");
-                        }
-                    }, 1000);
-                }
-                else {
-                    setTimeout(function () {
-                        console.log(leaderboard);
-                        if (leaderboard !== null) {
-                            load_slots(leaderboard, "Local Ranking");
-                        }
-                    }, 1000);
-                }
-            } else {
-                beatmap_data = {};
-                beatmap_score = {};
-
-                isCompleteRank = false;
-                leaderboard_section.style.opacity = 0;
-                document.getElementById("ranking_title").style.opacity = "0";
-
-                ranked_check = 0;
-
                 setTimeout(function () {
-                    rank_container.innerHTML = '';
-                    position = 0;
-                    rank_container.style.top = '-6900px';
-                    temp = true;
-                    slots = [];
-                }, 500);
+                    console.log(leaderboard);
+                    if (leaderboard !== null) {
+                        load_slots(leaderboard, "Ranking");
+                    }
+                }, 1000);
+            } else {
+                reset();
             }
-        }
-
-        if (state !== "play") {
-
-            beatmap_data = {};
-            beatmap_score = {};
-
-            leaderboard_section.style.opacity = 0;
-            document.getElementById("ranking_title").style.opacity = "0";
         }
 
         if (t_score !== play.score) {
@@ -516,7 +510,7 @@ socket.api_v2((data) => {
                 } else if (play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0] == 0) {
                     expected_temp = 1000000;
                 } else {
-                    expected_temp = (t_score / (1000000 / (parseInt(beatmap_data.count_normal) + parseInt(beatmap_data.count_slider)) * (t_total)) * 1000000).toFixed(0);
+                    expected_temp = (t_score / (1000000 / data.beatmap.stats.objects.total * t_total) * 1000000).toFixed(0);
                 }
                 rank_score_now.innerHTML = expected_temp.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
