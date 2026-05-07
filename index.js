@@ -454,186 +454,184 @@ setTimeout(function () {
             if (t_score !== play.score) {
                 t_score = play.score;
 
-                if ((menu.mods.num & v2) !== v2) {
-                    if (isCompleteRank == true) {
+                if (isCompleteRank == true) {
 
-                        if (menu.bm.rankedStatus == 0) {
-                            if (isEmptyObject(beatmap_data) !== true) {
-                                var s = beatmap_data.approved;
-                                if (s == 4 || s == 3 || s == 2 || s == 1) {
-                                    ranked_check = 1;
-                                }
-                                else if (s == 0 || s == -1 || s == -2) {
-                                    ranked_check = 2;
-                                }
+                    if (menu.bm.rankedStatus == 0) {
+                        if (isEmptyObject(beatmap_data) !== true) {
+                            var s = beatmap_data.approved;
+                            if (s == 4 || s == 3 || s == 2 || s == 1) {
+                                ranked_check = 1;
+                            }
+                            else if (s == 0 || s == -1 || s == -2) {
+                                ranked_check = 2;
                             }
                         }
-                        let expected_temp = 0;
-                        if (t_total == 0) {
-                            expected_temp = 0;
-                        } else if (play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0] == 0) {
-                            expected_temp = 1000000;
-                        } else {
-                            expected_temp = (t_score / (1000000 / (parseInt(beatmap_data.count_normal) + parseInt(beatmap_data.count_slider)) * (t_total)) * 1000000).toFixed(0);
-                        }
-                        rank_score_now.innerHTML = expected_temp.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                    }
+                    let expected_temp = 0;
+                    if (t_total == 0) {
+                        expected_temp = 0;
+                    } else if (play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0] == 0) {
+                        expected_temp = 1000000;
+                    } else {
+                        expected_temp = (t_score / (1000000 / (parseInt(beatmap_data.count_normal) + parseInt(beatmap_data.count_slider)) * (t_total)) * 1000000).toFixed(0);
+                    }
+                    rank_score_now.innerHTML = expected_temp.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-                        if (t_total !== 0) {
-                            if (menu.bm.rankedStatus == 4 || menu.bm.rankedStatus == 6 || menu.bm.rankedStatus == 7 || ranked_check == 1) {
-                                if (s_index == 1) {
-                                    let acc_1 = 50 * play.hits[50] + 100 * play.hits[100] + 200 * play.hits.katu + 300 * (play.hits[300] + play.hits.geki);
-                                    let acc_2 = 300 * (play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0] + play.hits.geki);
-                                    rank_percent_now.innerHTML = (acc_1 / acc_2 * 100).toFixed(2) + '%';
-                                }
-                                else if (s_index == 2) {
-                                    rank_percent_now.innerHTML = play.combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
-                                }
-                            } else if (menu.bm.rankedStatus == 2 || ranked_check == 2) {
+                    if (t_total !== 0) {
+                        if (menu.bm.rankedStatus == 4 || menu.bm.rankedStatus == 6 || menu.bm.rankedStatus == 7 || ranked_check == 1) {
+                            if (s_index == 1) {
+                                let acc_1 = 50 * play.hits[50] + 100 * play.hits[100] + 200 * play.hits.katu + 300 * (play.hits[300] + play.hits.geki);
+                                let acc_2 = 300 * (play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0] + play.hits.geki);
+                                rank_percent_now.innerHTML = (acc_1 / acc_2 * 100).toFixed(2) + '%';
+                            }
+                            else if (s_index == 2) {
                                 rank_percent_now.innerHTML = play.combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
                             }
+                        } else if (menu.bm.rankedStatus == 2 || ranked_check == 2) {
+                            rank_percent_now.innerHTML = play.combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
                         }
+                    }
 
-                        temp = true;
-                        if (menu.bm.rankedStatus == 4 || menu.bm.rankedStatus == 6 || menu.bm.rankedStatus == 7 || ranked_check == 1) {
-                            while (temp == true) {
-                                if (position == 0) {
-                                    if (expected_temp <= beatmap_score[position].score) {
-                                        let rank_down_box = document.getElementById(`rank_${position}`);
-                                        let rank_down_box_number = document.getElementById(`rank_number_${position}`);
-                                        rank_down_box.style.top = (position * 88) + 'px';
-                                        rank_box_now.style.top = ((position + 1) * 88) + 'px';
-                                        position = position + 1;
-                                        rank_now.innerHTML = '#' + (position + 1);
-                                        rank_down_box_number.innerHTML = '#' + (position);
+                    temp = true;
+                    if (menu.bm.rankedStatus == 4 || menu.bm.rankedStatus == 6 || menu.bm.rankedStatus == 7 || ranked_check == 1) {
+                        while (temp == true) {
+                            if (position == 0) {
+                                if (expected_temp <= beatmap_score[position].score) {
+                                    let rank_down_box = document.getElementById(`rank_${position}`);
+                                    let rank_down_box_number = document.getElementById(`rank_number_${position}`);
+                                    rank_down_box.style.top = (position * 88) + 'px';
+                                    rank_box_now.style.top = ((position + 1) * 88) + 'px';
+                                    position = position + 1;
+                                    rank_now.innerHTML = '#' + (position + 1);
+                                    rank_down_box_number.innerHTML = '#' + (position);
+                                } else {
+                                    temp = false;
+                                    break;
+                                }
+                            } else {
+                                if (expected_temp > parseInt(beatmap_score[position - 1].score)) {
+                                    let rank_up_box = document.getElementById(`rank_${position - 1}`);
+                                    let rank_up_box_number = document.getElementById(`rank_number_${position - 1}`);
+                                    rank_up_box.style.top = (position * 88) + 'px';
+                                    rank_box_now.style.top = ((position - 1) * 88) + 'px';
+                                    position = position - 1;
+                                    rank_up_box_number.innerHTML = '#' + (position + 2);
+                                    rank_now.innerHTML = '#' + (position + 1);
+                                    if (Object.keys(beatmap_score).length <= 4) {
+                                        rank_container.style.top = '0px';
+                                    } else if (position == 0 || position == 1 || position == 2) {
+                                        rank_container.style.top = '0px';
+                                    } else if (position == Object.keys(beatmap_score).length || position == (Object.keys(beatmap_score).length - 1) || position == (Object.keys(beatmap_score).length) - 2) {
+                                        rank_container.style.top = (0 - (Object.keys(beatmap_score).length - 7) * 88) + 'px';
                                     } else {
-                                        temp = false;
-                                        break;
+                                        rank_container.style.top = (0 - (position - 2) * 88) + 'px';
                                     }
                                 } else {
-                                    if (expected_temp > parseInt(beatmap_score[position - 1].score)) {
-                                        let rank_up_box = document.getElementById(`rank_${position - 1}`);
-                                        let rank_up_box_number = document.getElementById(`rank_number_${position - 1}`);
-                                        rank_up_box.style.top = (position * 88) + 'px';
-                                        rank_box_now.style.top = ((position - 1) * 88) + 'px';
-                                        position = position - 1;
-                                        rank_up_box_number.innerHTML = '#' + (position + 2);
-                                        rank_now.innerHTML = '#' + (position + 1);
-                                        if (Object.keys(beatmap_score).length <= 4) {
-                                            rank_container.style.top = '0px';
-                                        } else if (position == 0 || position == 1 || position == 2) {
-                                            rank_container.style.top = '0px';
-                                        } else if (position == Object.keys(beatmap_score).length || position == (Object.keys(beatmap_score).length - 1) || position == (Object.keys(beatmap_score).length) - 2) {
-                                            rank_container.style.top = (0 - (Object.keys(beatmap_score).length - 7) * 88) + 'px';
+                                    if (position == Object.keys(beatmap_score).length) {
+                                        if (Object.keys(beatmap_score).length >= 100) {
+                                            rank_now.innerHTML = '#??';
                                         } else {
-                                            rank_container.style.top = (0 - (position - 2) * 88) + 'px';
+                                            rank_now.innerHTML = '#' + Object.keys(beatmap_score).length;
                                         }
+                                        temp = false;
+                                        break;
                                     } else {
-                                        if (position == Object.keys(beatmap_score).length) {
-                                            if (Object.keys(beatmap_score).length >= 100) {
-                                                rank_now.innerHTML = '#??';
+                                        if (expected_temp <= beatmap_score[position].score) {
+                                            let rank_down_box = document.getElementById(`rank_${position}`);
+                                            let rank_down_box_number = document.getElementById(`rank_number_${position}`);
+                                            rank_down_box.style.top = ((position) * 88) + 'px';
+                                            rank_box_now.style.top = ((position + 1) * 88) + 'px';
+                                            position = position + 1;
+                                            rank_now.innerHTML = '#' + (position + 1);
+                                            rank_down_box_number.innerHTML = '#' + (position);
+
+
+                                            if (Object.keys(beatmap_score).length <= 4) {
+                                                rank_container.style.top = '0px';
+                                            } else if (position == 0 || position == 1 || position == 2) {
+                                                rank_container.style.top = '0px';
+                                            } else if (position == Object.keys(beatmap_score).length || position == (Object.keys(beatmap_score).length - 1) || position == (Object.keys(beatmap_score).length) - 2) {
+                                                rank_container.style.top = (0 - (Object.keys(beatmap_score).length - 7) * 88) + 'px';
                                             } else {
-                                                rank_now.innerHTML = '#' + Object.keys(beatmap_score).length;
+                                                rank_container.style.top = (0 - (position - 2) * 88) + 'px';
                                             }
+                                        } else {
                                             temp = false;
                                             break;
-                                        } else {
-                                            if (expected_temp <= beatmap_score[position].score) {
-                                                let rank_down_box = document.getElementById(`rank_${position}`);
-                                                let rank_down_box_number = document.getElementById(`rank_number_${position}`);
-                                                rank_down_box.style.top = ((position) * 88) + 'px';
-                                                rank_box_now.style.top = ((position + 1) * 88) + 'px';
-                                                position = position + 1;
-                                                rank_now.innerHTML = '#' + (position + 1);
-                                                rank_down_box_number.innerHTML = '#' + (position);
-
-
-                                                if (Object.keys(beatmap_score).length <= 4) {
-                                                    rank_container.style.top = '0px';
-                                                } else if (position == 0 || position == 1 || position == 2) {
-                                                    rank_container.style.top = '0px';
-                                                } else if (position == Object.keys(beatmap_score).length || position == (Object.keys(beatmap_score).length - 1) || position == (Object.keys(beatmap_score).length) - 2) {
-                                                    rank_container.style.top = (0 - (Object.keys(beatmap_score).length - 7) * 88) + 'px';
-                                                } else {
-                                                    rank_container.style.top = (0 - (position - 2) * 88) + 'px';
-                                                }
-                                            } else {
-                                                temp = false;
-                                                break;
-                                            }
-
                                         }
+
                                     }
                                 }
                             }
-                        } else if (menu.bm.rankedStatus == 2 || ranked_check == 2) {
-                            while (temp == true) {
-                                if (position == 0) {
-                                    // 포지션이 최상단 일 떄
-                                    if (expected_temp <= slots[position].score) {
-                                        let rank_down_box = document.getElementById(`rank_${position}`);
-                                        let rank_down_box_number = document.getElementById(`rank_number_${position}`);
-                                        rank_down_box.style.top = (position * 88) + 'px';
-                                        rank_box_now.style.top = ((position + 1) * 88) + 'px';
-                                        position = position + 1;
-                                        rank_now.innerHTML = '#' + (position + 1);
-                                        rank_down_box_number.innerHTML = '#' + (position);
+                        }
+                    } else if (menu.bm.rankedStatus == 2 || ranked_check == 2) {
+                        while (temp == true) {
+                            if (position == 0) {
+                                // 포지션이 최상단 일 떄
+                                if (expected_temp <= slots[position].score) {
+                                    let rank_down_box = document.getElementById(`rank_${position}`);
+                                    let rank_down_box_number = document.getElementById(`rank_number_${position}`);
+                                    rank_down_box.style.top = (position * 88) + 'px';
+                                    rank_box_now.style.top = ((position + 1) * 88) + 'px';
+                                    position = position + 1;
+                                    rank_now.innerHTML = '#' + (position + 1);
+                                    rank_down_box_number.innerHTML = '#' + (position);
+                                } else {
+                                    temp = false;
+                                    break;
+                                }
+                            } else {
+                                if (expected_temp > slots[position - 1].score) {
+                                    let rank_up_box = document.getElementById(`rank_${position - 1}`);
+                                    let rank_up_box_number = document.getElementById(`rank_number_${position - 1}`);
+                                    rank_up_box.style.top = (position * 88) + 'px';
+                                    rank_box_now.style.top = ((position - 1) * 88) + 'px';
+                                    position = position - 1;
+                                    rank_now.innerHTML = '#' + (position + 1);
+                                    rank_up_box_number.innerHTML = '#' + (position + 2);
+
+                                    if (slots.length - 1 <= 4) {
+                                        rank_container.style.top = '0px';
+                                    } else if (position == 0 || position == 1 || position == 2) {
+                                        rank_container.style.top = '0px';
+                                    } else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
+                                        rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
                                     } else {
-                                        temp = false;
-                                        break;
+                                        rank_container.style.top = (0 - (position - 2) * 88) + 'px';
                                     }
                                 } else {
-                                    if (expected_temp > slots[position - 1].score) {
-                                        let rank_up_box = document.getElementById(`rank_${position - 1}`);
-                                        let rank_up_box_number = document.getElementById(`rank_number_${position - 1}`);
-                                        rank_up_box.style.top = (position * 88) + 'px';
-                                        rank_box_now.style.top = ((position - 1) * 88) + 'px';
-                                        position = position - 1;
-                                        rank_now.innerHTML = '#' + (position + 1);
-                                        rank_up_box_number.innerHTML = '#' + (position + 2);
-
-                                        if (slots.length - 1 <= 4) {
-                                            rank_container.style.top = '0px';
-                                        } else if (position == 0 || position == 1 || position == 2) {
-                                            rank_container.style.top = '0px';
-                                        } else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
-                                            rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
+                                    if (position == slots.length - 1) {
+                                        if (slots.length - 1 >= 100) {
+                                            rank_now.innerHTML = '#Out';
                                         } else {
-                                            rank_container.style.top = (0 - (position - 2) * 88) + 'px';
+                                            rank_now.innerHTML = '#' + (slots.length);
                                         }
+                                        temp = false;
+                                        break;
                                     } else {
-                                        if (position == slots.length - 1) {
-                                            if (slots.length - 1 >= 100) {
-                                                rank_now.innerHTML = '#Out';
+                                        if (expected_temp <= slots[position].score) {
+                                            let rank_down_box = document.getElementById(`rank_${position}`);
+                                            let rank_down_box_number = document.getElementById(`rank_number_${position}`);
+                                            rank_down_box.style.top = ((position) * 88) + 'px';
+                                            rank_box_now.style.top = ((position + 1) * 88) + 'px';
+                                            position = position + 1;
+                                            rank_now.innerHTML = '#' + (position + 1);
+                                            rank_down_box_number.innerHTML = '#' + (position);
+
+                                            if (slots.length - 1 <= 4) {
+                                                rank_container.style.top = '0px';
+                                            } else if (position == 0 || position == 1 || position == 2) {
+                                                rank_container.style.top = '0px';
+                                            } else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
+                                                rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
                                             } else {
-                                                rank_now.innerHTML = '#' + (slots.length);
+                                                rank_container.style.top = (0 - (position - 2) * 88) + 'px';
                                             }
+                                        } else {
                                             temp = false;
                                             break;
-                                        } else {
-                                            if (expected_temp <= slots[position].score) {
-                                                let rank_down_box = document.getElementById(`rank_${position}`);
-                                                let rank_down_box_number = document.getElementById(`rank_number_${position}`);
-                                                rank_down_box.style.top = ((position) * 88) + 'px';
-                                                rank_box_now.style.top = ((position + 1) * 88) + 'px';
-                                                position = position + 1;
-                                                rank_now.innerHTML = '#' + (position + 1);
-                                                rank_down_box_number.innerHTML = '#' + (position);
-
-                                                if (slots.length - 1 <= 4) {
-                                                    rank_container.style.top = '0px';
-                                                } else if (position == 0 || position == 1 || position == 2) {
-                                                    rank_container.style.top = '0px';
-                                                } else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
-                                                    rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
-                                                } else {
-                                                    rank_container.style.top = (0 - (position - 2) * 88) + 'px';
-                                                }
-                                            } else {
-                                                temp = false;
-                                                break;
-                                            }
-
                                         }
+
                                     }
                                 }
                             }
