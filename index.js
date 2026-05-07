@@ -69,6 +69,15 @@ let s_index;
 const SUB_ACC = 1;
 const SUB_COMBO = 2;
 
+const RANKED_STATUS_UNKNOWN = 0;
+const RANKED_STATUS_NOT_SUBMITTED = 1;
+const RANKED_STATUS_PENDING = 2;
+const RANKED_STATUS_RANKED = 4;
+const RANKED_STATUS_APPROVED = 5;
+const RANKED_STATUS_QUALIFIED = 6;
+const RANKED_STATUS_LOVED = 7;
+
+
 let state;
 let beatmap_score = {};
 let beatmap_data = {};
@@ -264,6 +273,87 @@ function create_ranking_panel() {
     }
 }
 
+/**
+ * 
+ * @param {import('./js/socket.js').WEBSOCKET_V2_LEADERBOARD[]} slots 
+ * @param {string} rankingTitle 
+ */
+function load_slots(slots, rankingTitle) {
+
+    for (var i = 0; i < slots.length - 1; i++) {
+        if (p_index == PROFILE_REVEAL) {
+            rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box"> \n';
+        } else if (p_index == PROFILE_HIDE) {
+            rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box_hide"> \n';
+        }
+        let rank_temp = document.getElementById(`rank_${i}`);
+        rank_temp.style.top = (88 * i) + 'px';
+
+        if (p_index == PROFILE_REVEAL) {
+            rank_temp.innerHTML = '<div id="rank_pic_' + i + '" class="rank_pic"></div> \n <div id="rank_pic_opa"></div> \n <div id="rank_id_' + i + '" class="rank_id"></div> \n <div id="rank_score_' + i + '" class="rank_score">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank">#' + (i + 1) + '</div>';
+            let rank_pic = document.getElementById(`rank_pic_${i}`);
+            rank_pic.style.backgroundImage = `url('https://a.ppy.sh/')`;
+        } else if (p_index == PROFILE_HIDE) {
+            rank_temp.innerHTML = '<div id="rank_id_' + i + '" class="rank_id_hide"></div> \n <div id="rank_score_' + i + '" class="rank_score_hide">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank_hide">#' + (i + 1) + '</div>';
+        }
+
+        let rank_id = document.getElementById(`rank_id_${i}`);
+        let rank_score = document.getElementById(`rank_score_${i}`);
+        let rank_percent = document.getElementById(`rank_percent_${i}`);
+        rank_id.innerHTML = slots[i].name;
+        rank_score.innerHTML = slots[i].score.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        rank_percent.innerHTML = slots[i].combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
+
+        rank_id.style.color = '#949D9D';
+        rank_score.style.color = '#949D9D';
+        rank_percent.style.color = '#5A8D8F';
+    }
+    if (p_index == PROFILE_REVEAL) {
+        rank_container.innerHTML += '<div id="rank_box_now" class="rank_box"> \n';
+    } else if (p_index == PROFILE_HIDE) {
+        rank_container.innerHTML += '<div id="rank_box_now" class="rank_box_hide"> \n';
+    }
+    let rank_temp = document.getElementById(`rank_box_now`);
+    rank_temp.style.top = ((slots.length - 1) * 88) + 'px';
+
+    if (p_index == PROFILE_REVEAL) {
+        rank_temp.innerHTML = '<div id="rank_pic_now" class="rank_pic"></div> \n <div id="rank_id_now" class="rank_id"></div> \n <div id="rank_score_now" class="rank_score">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank">#?</div>';
+        let rank_pic = document.getElementById("rank_pic_now");
+        rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${uid}')`;
+    } else if (p_index == PROFILE_HIDE) {
+        rank_temp.innerHTML = '<div id="rank_id_now" class="rank_id_hide"></div> \n <div id="rank_score_now" class="rank_score_hide">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank_hide">#?</div>';
+    }
+
+    let rank_id = document.getElementById("rank_id_now");
+    //rank_pic.style.backgroundImage = "url('parts/profile.png')";
+    rank_id.innerHTML = t_player;
+
+    rank_score_now = document.getElementById("rank_score_now");
+    rank_percent_now = document.getElementById("rank_percent_now");
+    rank_now = document.getElementById("rank_now");
+    rank_box_now = document.getElementById("rank_box_now");
+
+    isCompleteRank = true;
+    position = slots.length - 1;
+
+    if (slots.length - 1 <= 4) {
+        rank_container.style.top = '0px';
+    }
+    //#1, #2, #3
+    else if (position == 0 || position == 1 || position == 2) {
+        rank_container.style.top = '0px';
+    } //#51, #50, #49
+    else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
+        rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
+    } else {
+        rank_container.style.top = (0 - (position - 2) * 88) + 'px';
+    }
+    leaderboard_section.style.opacity = 1;
+    document.getElementById("ranking_title").style.opacity = "1";
+    document.getElementById("ranking_title").innerText = rankingTitle;
+    startSwitch();
+}
+
 socket.api_v2((data) => {
     try {
         if (!settingsInitialized) {
@@ -327,79 +417,7 @@ socket.api_v2((data) => {
                             }
                             else if (s == 0 || s == -1 || s == -2) {
                                 if (slots !== null) {
-                                    for (var i = 0; i < slots.length - 1; i++) {
-                                        if (p_index == PROFILE_REVEAL) {
-                                            rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box"> \n';
-                                        } else if (p_index == PROFILE_HIDE) {
-                                            rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box_hide"> \n';
-                                        }
-                                        let rank_temp = document.getElementById(`rank_${i}`);
-                                        rank_temp.style.top = (88 * i) + 'px';
-
-                                        if (p_index == PROFILE_REVEAL) {
-                                            rank_temp.innerHTML = '<div id="rank_pic_' + i + '" class="rank_pic"></div> \n <div id="rank_pic_opa"></div> \n <div id="rank_id_' + i + '" class="rank_id"></div> \n <div id="rank_score_' + i + '" class="rank_score">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank">#' + (i + 1) + '</div>';
-                                            let rank_pic = document.getElementById(`rank_pic_${i}`);
-                                            rank_pic.style.backgroundImage = `url('https://a.ppy.sh/')`;
-                                        } else if (p_index == PROFILE_HIDE) {
-                                            rank_temp.innerHTML = '<div id="rank_id_' + i + '" class="rank_id_hide"></div> \n <div id="rank_score_' + i + '" class="rank_score_hide">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank_hide">#' + (i + 1) + '</div>';
-                                        }
-
-                                        let rank_id = document.getElementById(`rank_id_${i}`);
-                                        let rank_score = document.getElementById(`rank_score_${i}`);
-                                        let rank_percent = document.getElementById(`rank_percent_${i}`);
-                                        rank_id.innerHTML = slots[i].name;
-                                        rank_score.innerHTML = slots[i].score.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                                        rank_percent.innerHTML = slots[i].combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
-
-                                        rank_id.style.color = '#949D9D';
-                                        rank_score.style.color = '#949D9D';
-                                        rank_percent.style.color = '#5A8D8F';
-                                    }
-                                    if (p_index == PROFILE_REVEAL) {
-                                        rank_container.innerHTML += '<div id="rank_box_now" class="rank_box"> \n';
-                                    } else if (p_index == PROFILE_HIDE) {
-                                        rank_container.innerHTML += '<div id="rank_box_now" class="rank_box_hide"> \n';
-                                    }
-                                    let rank_temp = document.getElementById(`rank_box_now`);
-                                    rank_temp.style.top = ((slots.length - 1) * 88) + 'px';
-
-                                    if (p_index == PROFILE_REVEAL) {
-                                        rank_temp.innerHTML = '<div id="rank_pic_now" class="rank_pic"></div> \n <div id="rank_id_now" class="rank_id"></div> \n <div id="rank_score_now" class="rank_score">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank">#?</div>';
-                                        let rank_pic = document.getElementById("rank_pic_now");
-                                        rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${uid}')`;
-                                    } else if (p_index == PROFILE_HIDE) {
-                                        rank_temp.innerHTML = '<div id="rank_id_now" class="rank_id_hide"></div> \n <div id="rank_score_now" class="rank_score_hide">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank_hide">#?</div>';
-                                    }
-
-                                    let rank_id = document.getElementById("rank_id_now");
-                                    //rank_pic.style.backgroundImage = "url('parts/profile.png')";
-                                    rank_id.innerHTML = t_player;
-
-                                    rank_score_now = document.getElementById("rank_score_now");
-                                    rank_percent_now = document.getElementById("rank_percent_now");
-                                    rank_now = document.getElementById("rank_now");
-                                    rank_box_now = document.getElementById("rank_box_now");
-
-                                    isCompleteRank = true;
-                                    position = slots.length - 1;
-
-                                    if (slots.length - 1 <= 4) {
-                                        rank_container.style.top = '0px';
-                                    }
-                                    //#1, #2, #3
-                                    else if (position == 0 || position == 1 || position == 2) {
-                                        rank_container.style.top = '0px';
-                                    } //#51, #50, #49
-                                    else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
-                                        rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
-                                    } else {
-                                        rank_container.style.top = (0 - (position - 2) * 88) + 'px';
-                                    }
-                                    leaderboard_section.style.opacity = 1;
-                                    document.getElementById("ranking_title").style.opacity = "1";
-                                    document.getElementById("ranking_title").innerText = "Global Ranking";
-                                    startSwitch();
-
+                                    load_slots(slots, "Global Ranking");
                                 }
                             }
                         }
@@ -410,78 +428,7 @@ socket.api_v2((data) => {
                 } else if (rankedStatus == 2) { //pending(no ranking)
                     setTimeout(function () {
                         if (slots !== null) {
-                            for (var i = 0; i < slots.length - 1; i++) {
-                                if (p_index == PROFILE_REVEAL) {
-                                    rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box"> \n';
-                                } else if (p_index == PROFILE_HIDE) {
-                                    rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box_hide"> \n';
-                                }
-                                let rank_temp = document.getElementById(`rank_${i}`);
-                                rank_temp.style.top = (88 * i) + 'px';
-
-                                if (p_index == PROFILE_REVEAL) {
-                                    rank_temp.innerHTML = '<div id="rank_pic_' + i + '" class="rank_pic"></div> \n <div id="rank_pic_opa"></div> \n <div id="rank_id_' + i + '" class="rank_id"></div> \n <div id="rank_score_' + i + '" class="rank_score">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank">#' + (i + 1) + '</div>';
-                                    let rank_pic = document.getElementById(`rank_pic_${i}`);
-                                    rank_pic.style.backgroundImage = `url('https://a.ppy.sh/')`;
-                                } else if (p_index == PROFILE_HIDE) {
-                                    rank_temp.innerHTML = '<div id="rank_id_' + i + '" class="rank_id_hide"></div> \n <div id="rank_score_' + i + '" class="rank_score_hide">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank_hide">#' + (i + 1) + '</div>';
-                                }
-
-                                let rank_id = document.getElementById(`rank_id_${i}`);
-                                let rank_score = document.getElementById(`rank_score_${i}`);
-                                let rank_percent = document.getElementById(`rank_percent_${i}`);
-                                rank_id.innerHTML = slots[i].name;
-                                rank_score.innerHTML = slots[i].score.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                                rank_percent.innerHTML = slots[i].combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
-
-                                rank_id.style.color = '#949D9D';
-                                rank_score.style.color = '#949D9D';
-                                rank_percent.style.color = '#5A8D8F';
-                            }
-                            if (p_index == PROFILE_REVEAL) {
-                                rank_container.innerHTML += '<div id="rank_box_now" class="rank_box"> \n';
-                            } else if (p_index == PROFILE_HIDE) {
-                                rank_container.innerHTML += '<div id="rank_box_now" class="rank_box_hide"> \n';
-                            }
-                            let rank_temp = document.getElementById(`rank_box_now`);
-                            rank_temp.style.top = ((slots.length - 1) * 88) + 'px';
-
-                            if (p_index == PROFILE_REVEAL) {
-                                rank_temp.innerHTML = '<div id="rank_pic_now" class="rank_pic"></div> \n <div id="rank_id_now" class="rank_id"></div> \n <div id="rank_score_now" class="rank_score">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank">#?</div>';
-                                let rank_pic = document.getElementById("rank_pic_now");
-                                rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${uid}')`;
-                            } else if (p_index == PROFILE_HIDE) {
-                                rank_temp.innerHTML = '<div id="rank_id_now" class="rank_id_hide"></div> \n <div id="rank_score_now" class="rank_score_hide">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank_hide">#?</div>';
-                            }
-
-                            let rank_id = document.getElementById("rank_id_now");
-                            //rank_pic.style.backgroundImage = "url('parts/profile.png')";
-                            rank_id.innerHTML = t_player;
-
-                            rank_score_now = document.getElementById("rank_score_now");
-                            rank_percent_now = document.getElementById("rank_percent_now");
-                            rank_now = document.getElementById("rank_now");
-                            rank_box_now = document.getElementById("rank_box_now");
-
-                            isCompleteRank = true;
-                            position = slots.length - 1;
-
-                            if (slots.length - 1 <= 4) {
-                                rank_container.style.top = '0px';
-                            }
-                            //#1, #2, #3
-                            else if (position == 0 || position == 1 || position == 2) {
-                                rank_container.style.top = '0px';
-                            } //#51, #50, #49
-                            else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
-                                rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
-                            } else {
-                                rank_container.style.top = (0 - (position - 2) * 88) + 'px';
-                            }
-                            leaderboard_section.style.opacity = 1;
-                            document.getElementById("ranking_title").style.opacity = "1";
-                            document.getElementById("ranking_title").innerText = "Local Ranking";
-                            startSwitch();
+                            load_slots(slots, "Local Ranking");
                         }
                     }, 1000);
                 }
