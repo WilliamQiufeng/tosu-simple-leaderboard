@@ -81,7 +81,7 @@ const RANKED_STATUS_LOVED = 7;
 let state;
 let beatmap_score = {};
 let beatmap_data = {};
-/** @type {WEBSOCKET_V2_LEADERBOARD[]} */
+/** @type {import('./js/socket.js').WEBSOCKET_V2_LEADERBOARD[]} */
 let slots = [];
 
 let rank_container = document.getElementById("rank_container");
@@ -369,7 +369,7 @@ socket.api_v2((data) => {
             t_player = "unknown";
         }
 
-        if (slots !== data.leaderboard && state == 2) {
+        if (slots !== data.leaderboard && state === "play") {
             slots = data.leaderboard;
         }
         if (t_total !== play.hits.geki + play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0]) {
@@ -380,13 +380,14 @@ socket.api_v2((data) => {
         let rankedStatus = data.beatmap.status.number;
         let mods = data.play.mods.number;
 
-        let score_v2 = (mods & v2) === v2;
+        const score_v2 = (mods & v2) === v2;
+        const hasOnlineLeaderboard = rankedStatus == RANKED_STATUS_RANKED || rankedStatus == RANKED_STATUS_QUALIFIED || rankedStatus == RANKED_STATUS_LOVED;
 
-        if (state !== data.state.number) {
-            state = data.state.number;
+        if (state !== data.state.name) {
+            state = data.state.name;
             console.log(data.state)
 
-            if (state == 2) {
+            if (state === "play") {
                 console.log(data.beatmap.status);
                 axios.all([axios.get("/get_beatmaps", {
                     baseURL: "https://osu.ppy.sh/api",
@@ -408,7 +409,7 @@ socket.api_v2((data) => {
                 })).catch((error) => {
                     console.error(error);
                 });
-                if (rankedStatus == 0) {
+                if (rankedStatus == RANKED_STATUS_UNKNOWN) {
                     setTimeout(function () {
                         if (isEmptyObject(beatmap_data) !== true) {
                             var s = beatmap_data.approved;
@@ -423,9 +424,9 @@ socket.api_v2((data) => {
                         }
                     }, 1000);
                 }
-                else if (rankedStatus == 4 || rankedStatus == 6 || rankedStatus == 7) {
+                else if (hasOnlineLeaderboard) {
                     setTimeout(create_ranking_panel, 1000);
-                } else if (rankedStatus == 2) { //pending(no ranking)
+                } else if (rankedStatus == RANKED_STATUS_PENDING) { //pending(no ranking)
                     setTimeout(function () {
                         if (slots !== null) {
                             load_slots(slots, "Local Ranking");
@@ -452,7 +453,7 @@ socket.api_v2((data) => {
             }
         }
 
-        if (state !== 2) {
+        if (state !== "play") {
 
             beatmap_data = {};
             beatmap_score = {};
@@ -466,7 +467,7 @@ socket.api_v2((data) => {
 
             if (isCompleteRank == true) {
 
-                if (rankedStatus == 0) {
+                if (rankedStatus == RANKED_STATUS_UNKNOWN) {
                     if (isEmptyObject(beatmap_data) !== true) {
                         var s = beatmap_data.approved;
                         if (s == 4 || s == 3 || s == 2 || s == 1) {
@@ -488,7 +489,7 @@ socket.api_v2((data) => {
                 rank_score_now.innerHTML = expected_temp.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
                 if (t_total !== 0) {
-                    if (rankedStatus == 4 || rankedStatus == 6 || rankedStatus == 7 || ranked_check == 1) {
+                    if (hasOnlineLeaderboard || ranked_check == 1) {
                         if (s_index == SUB_ACC) {
                             let acc_1 = 50 * play.hits[50] + 100 * play.hits[100] + 200 * play.hits.katu + 300 * (play.hits[300] + play.hits.geki);
                             let acc_2 = 300 * (play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0] + play.hits.geki);
@@ -497,13 +498,13 @@ socket.api_v2((data) => {
                         else if (s_index == SUB_COMBO) {
                             rank_percent_now.innerHTML = play.combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
                         }
-                    } else if (rankedStatus == 2 || ranked_check == 2) {
+                    } else if (rankedStatus == RANKED_STATUS_PENDING || ranked_check == 2) {
                         rank_percent_now.innerHTML = play.combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
                     }
                 }
 
                 temp = true;
-                if (rankedStatus == 4 || rankedStatus == 6 || rankedStatus == 7 || ranked_check == 1) {
+                if (hasOnlineLeaderboard || ranked_check == 1) {
                     while (temp == true) {
                         if (position == 0) {
                             if (expected_temp <= beatmap_score[position].score) {
@@ -574,7 +575,7 @@ socket.api_v2((data) => {
                             }
                         }
                     }
-                } else if (rankedStatus == 2 || ranked_check == 2) {
+                } else if (rankedStatus == RANKED_STATUS_PENDING || ranked_check == RANKED_STATUS_PENDING) {
                     while (temp == true) {
                         if (position == 0) {
                             // 포지션이 최상단 일 떄
