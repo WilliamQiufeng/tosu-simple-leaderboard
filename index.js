@@ -98,7 +98,65 @@ let ranked_check = 0;
 
 var v2 = 0x20000000;
 
+/** @type {LeaderboardSlot[]} */
+let leaderboard = [];
 
+/**
+ * @typedef {Object} LeaderboardSlot
+ * @property {string} id
+ * @property {string} name
+ * @property {number} score
+ * @property {number} maxCombo
+ * @property {number} accuracy
+ * @property {object} hits
+ * @property {number} hits.300
+ * @property {number} hits.100
+ * @property {number} hits.50
+ * @property {number} hits.miss
+ * @property {number} hits.katu
+ * @property {number} hits.geki
+ */
+
+/**
+ * @param {import('./js/socket.js').WEBSOCKET_V2_LEADERBOARD} slot 
+ * @returns {LeaderboardSlot}
+ */
+function slotToLeaderboardSlot(slot) {
+    return {
+        id: slot.id,
+        name: slot.name,
+        score: slot.score,
+        maxCombo: slot.combo.max,
+        accuracy: slot.accuracy,
+        hits: slot.hits
+    };
+}
+
+/**
+ * @param {object} beatmapScore 
+ * @returns {LeaderboardSlot}
+ */
+function beatmapScoreToLeaderboardSlot(beatmapScore) {
+    hits = {
+        300: parseInt(beatmapScore["count300"]),
+        100: parseInt(beatmapScore["count100"]),
+        50: parseInt(beatmapScore["count50"]),
+        "miss": parseInt(beatmapScore["countmiss"]),
+        "katu": parseInt(beatmapScore["countkatu"]),
+        "geki": parseInt(beatmapScore["countgeki"])
+    }
+    let acc_1 = 50 * hits[50] + 100 * hits[100] + 200 * hits["katu"] + 300 * (hits[300] + hits["geki"]);
+    let acc_2 = 300 * (hits["miss"] + hits[50] + hits[100] + hits["katu"] + hits[300] + hits["geki"]);
+    let accuracy = acc_1 / acc_2 * 100;
+    return {
+        id: beatmapScore["user_id"],
+        name: beatmapScore["username"],
+        score: parseInt(beatmapScore["score"]),
+        maxCombo: parseInt(beatmapScore["maxCombo"]),
+        accuracy: accuracy,
+        hits: hits
+    };
+}
 
 socket.sendCommand('getSettings', encodeURI(window.COUNTER_PATH));
 
@@ -173,113 +231,12 @@ function isEmptyObject(param) {
     return Object.keys(param).length === 0 && param.constructor === Object;
 }
 
-function create_ranking_panel() {
-    if (isEmptyObject(beatmap_score) !== true) {
-        /*for(var i = 0; i < 49; i++){
-            beatmap_score[i] = beatmap_score[i+1];
-        }
-        delete beatmap_score[49];
-        console.log(beatmap_score);*/
-
-        for (var i = 0; i < Object.keys(beatmap_score).length; i++) {
-            if (p_index == PROFILE_REVEAL) {
-                rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box"> \n';
-            }
-            else if (p_index == PROFILE_HIDE) {
-                rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box_hide"> \n';
-            }
-            let rank_temp = document.getElementById(`rank_${i}`);
-            rank_temp.style.backgroundColor = bg_value;
-            rank_temp.style.top = (88 * i) + 'px';
-
-            if (p_index == PROFILE_REVEAL) {
-                rank_temp.innerHTML = '<div id="rank_pic_' + i + '" class="rank_pic"></div> \n <div id="rank_pic_opa"></div> \n <div id="rank_id_' + i + '" class="rank_id"></div> \n <div id="rank_score_' + i + '" class="rank_score">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank">#' + (i + 1) + '</div>';
-                let rank_pic = document.getElementById(`rank_pic_${i}`);
-                rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${beatmap_score[i].user_id}')`;
-            }
-            else if (p_index == PROFILE_HIDE) {
-                rank_temp.innerHTML = '<div id="rank_id_' + i + '" class="rank_id_hide"></div> \n <div id="rank_score_' + i + '" class="rank_score_hide">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank_hide">#' + (i + 1) + '</div>';
-            }
-
-            let rank_id = document.getElementById(`rank_id_${i}`);
-            let rank_score = document.getElementById(`rank_score_${i}`);
-            let rank_percent = document.getElementById(`rank_percent_${i}`);
-
-            rank_id.innerHTML = beatmap_score[i].username;
-            rank_score.innerHTML = beatmap_score[i].score.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-            rank_id.style.color = '#949D9D';
-            rank_score.style.color = '#949D9D';
-            rank_percent.style.color = '#5A8D8F';
-
-            if (s_index == SUB_ACC) {
-                let acc_1 = (50 * parseInt(beatmap_score[i].count50) + 100 * parseInt(beatmap_score[i].count100) + 200 * parseInt(beatmap_score[i].countkatu) + 300 * (parseInt(beatmap_score[i].count300) + parseInt(beatmap_score[i].countgeki)));
-                let acc_2 = 300 * (parseInt(beatmap_score[i].countmiss) + parseInt(beatmap_score[i].count50) + parseInt(beatmap_score[i].count100) + parseInt(beatmap_score[i].countkatu) + parseInt(beatmap_score[i].count300) + parseInt(beatmap_score[i].countgeki));
-                rank_percent.innerHTML = (acc_1 / acc_2 * 100).toFixed(2) + '%';
-            }
-            else if (s_index == SUB_COMBO) {
-                rank_percent.innerHTML = beatmap_score[i].maxcombo.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
-            }
-
-        }
-        if (p_index == PROFILE_REVEAL) {
-            rank_container.innerHTML += '<div id="rank_box_now" class="rank_box"> \n';
-        }
-        else if (p_index == PROFILE_HIDE) {
-            rank_container.innerHTML += '<div id="rank_box_now" class="rank_box_hide"> \n';
-        }
-        let rank_temp = document.getElementById(`rank_box_now`);
-        rank_temp.style.backgroundColor = bg_value;
-        rank_temp.style.top = (Object.keys(beatmap_score).length * 88) + 'px';
-
-        if (p_index == PROFILE_REVEAL) {
-            rank_temp.innerHTML = '<div id="rank_pic_now" class="rank_pic"></div> \n <div id="rank_id_now" class="rank_id"></div> \n <div id="rank_score_now" class="rank_score">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank">#?</div>';
-            let rank_pic = document.getElementById("rank_pic_now");
-            rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${uid}')`;
-        }
-        else if (p_index == PROFILE_HIDE) {
-            rank_temp.innerHTML = '<div id="rank_id_now" class="rank_id_hide"></div> \n <div id="rank_score_now" class="rank_score_hide">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank_hide">#?</div>';
-        }
-
-        let rank_id = document.getElementById("rank_id_now");
-        //rank_pic.style.backgroundImage = "url('parts/profile.png')";
-        rank_id.innerHTML = t_player;
-
-        rank_score_now = document.getElementById("rank_score_now");
-        rank_percent_now = document.getElementById("rank_percent_now");
-        rank_now = document.getElementById("rank_now");
-        rank_box_now = document.getElementById("rank_box_now");
-
-        isCompleteRank = true;
-        position = Object.keys(beatmap_score).length;
-
-
-        if (Object.keys(beatmap_score).length <= 4) {
-            rank_container.style.top = '0px';
-        }
-        else if (position == 0 || position == 1 || position == 2) {
-            rank_container.style.top = '0px';
-        }
-        else if (position == Object.keys(beatmap_score).length || position == (Object.keys(beatmap_score).length - 1) || position == (Object.keys(beatmap_score).length) - 2) {
-            rank_container.style.top = (0 - (Object.keys(beatmap_score).length - 7) * 88) + 'px';
-        } else {
-            rank_container.style.top = (0 - (position - 2) * 88) + 'px';
-        }
-        leaderboard_section.style.opacity = 1;
-        document.getElementById("ranking_title").style.opacity = "1";
-        document.getElementById("ranking_title").innerText = "Global Ranking";
-        startSwitch();
-
-    }
-}
-
 /**
  * 
- * @param {import('./js/socket.js').WEBSOCKET_V2_LEADERBOARD[]} slots 
+ * @param {LeaderboardSlot[]} slots 
  * @param {string} rankingTitle 
  */
 function load_slots(slots, rankingTitle) {
-
     for (var i = 0; i < slots.length - 1; i++) {
         if (p_index == PROFILE_REVEAL) {
             rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box"> \n';
@@ -292,7 +249,7 @@ function load_slots(slots, rankingTitle) {
         if (p_index == PROFILE_REVEAL) {
             rank_temp.innerHTML = '<div id="rank_pic_' + i + '" class="rank_pic"></div> \n <div id="rank_pic_opa"></div> \n <div id="rank_id_' + i + '" class="rank_id"></div> \n <div id="rank_score_' + i + '" class="rank_score">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank">#' + (i + 1) + '</div>';
             let rank_pic = document.getElementById(`rank_pic_${i}`);
-            rank_pic.style.backgroundImage = `url('https://a.ppy.sh/')`;
+            rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${slots[i].id}')`;
         } else if (p_index == PROFILE_HIDE) {
             rank_temp.innerHTML = '<div id="rank_id_' + i + '" class="rank_id_hide"></div> \n <div id="rank_score_' + i + '" class="rank_score_hide">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank_hide">#' + (i + 1) + '</div>';
         }
@@ -302,7 +259,7 @@ function load_slots(slots, rankingTitle) {
         let rank_percent = document.getElementById(`rank_percent_${i}`);
         rank_id.innerHTML = slots[i].name;
         rank_score.innerHTML = slots[i].score.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        rank_percent.innerHTML = slots[i].combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
+        rank_percent.innerHTML = slots[i].maxCombo.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
 
         rank_id.style.color = '#949D9D';
         rank_score.style.color = '#949D9D';
@@ -354,6 +311,81 @@ function load_slots(slots, rankingTitle) {
     startSwitch();
 }
 
+function update_leaderboard() {
+    temp = true;
+    while (temp == true) {
+        if (position == 0) {
+            // 포지션이 최상단 일 떄
+            if (expected_temp <= leaderboard[position].score) {
+                let rank_down_box = document.getElementById(`rank_${position}`);
+                let rank_down_box_number = document.getElementById(`rank_number_${position}`);
+                rank_down_box.style.top = (position * 88) + 'px';
+                rank_box_now.style.top = ((position + 1) * 88) + 'px';
+                position = position + 1;
+                rank_now.innerHTML = '#' + (position + 1);
+                rank_down_box_number.innerHTML = '#' + (position);
+            } else {
+                temp = false;
+                break;
+            }
+        } else {
+            if (expected_temp > leaderboard[position - 1].score) {
+                let rank_up_box = document.getElementById(`rank_${position - 1}`);
+                let rank_up_box_number = document.getElementById(`rank_number_${position - 1}`);
+                rank_up_box.style.top = (position * 88) + 'px';
+                rank_box_now.style.top = ((position - 1) * 88) + 'px';
+                position = position - 1;
+                rank_now.innerHTML = '#' + (position + 1);
+                rank_up_box_number.innerHTML = '#' + (position + 2);
+
+                if (leaderboard.length - 1 <= 4) {
+                    rank_container.style.top = '0px';
+                } else if (position == 0 || position == 1 || position == 2) {
+                    rank_container.style.top = '0px';
+                } else if (position == leaderboard.length - 1 || position == (leaderboard.length - 2) || position == (leaderboard.length - 3)) {
+                    rank_container.style.top = ((0 - (leaderboard.length - 8)) * 88) + 'px';
+                } else {
+                    rank_container.style.top = (0 - (position - 2) * 88) + 'px';
+                }
+            } else {
+                if (position == leaderboard.length - 1) {
+                    if (leaderboard.length - 1 >= 100) {
+                        rank_now.innerHTML = '#Out';
+                    } else {
+                        rank_now.innerHTML = '#' + (leaderboard.length);
+                    }
+                    temp = false;
+                    break;
+                } else {
+                    if (expected_temp <= leaderboard[position].score) {
+                        let rank_down_box = document.getElementById(`rank_${position}`);
+                        let rank_down_box_number = document.getElementById(`rank_number_${position}`);
+                        rank_down_box.style.top = ((position) * 88) + 'px';
+                        rank_box_now.style.top = ((position + 1) * 88) + 'px';
+                        position = position + 1;
+                        rank_now.innerHTML = '#' + (position + 1);
+                        rank_down_box_number.innerHTML = '#' + (position);
+
+                        if (leaderboard.length - 1 <= 4) {
+                            rank_container.style.top = '0px';
+                        } else if (position == 0 || position == 1 || position == 2) {
+                            rank_container.style.top = '0px';
+                        } else if (position == leaderboard.length - 1 || position == (leaderboard.length - 2) || position == (leaderboard.length - 3)) {
+                            rank_container.style.top = ((0 - (leaderboard.length - 8)) * 88) + 'px';
+                        } else {
+                            rank_container.style.top = (0 - (position - 2) * 88) + 'px';
+                        }
+                    } else {
+                        temp = false;
+                        break;
+                    }
+
+                }
+            }
+        }
+    }
+}
+
 socket.api_v2((data) => {
     try {
         if (!settingsInitialized) {
@@ -371,6 +403,7 @@ socket.api_v2((data) => {
 
         if (slots !== data.leaderboard && state === "play") {
             slots = data.leaderboard;
+            leaderboard = data.leaderboard.map(slotToLeaderboardSlot);
         }
         if (t_total !== play.hits.geki + play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0]) {
             t_total = play.hits.geki + play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0];
@@ -405,7 +438,10 @@ socket.api_v2((data) => {
                     },
                 })]).then(axios.spread((firstResp, secondResp) => {
                     Promise.resolve(firstResp.data[0]).then((data) => Object.assign(beatmap_data, data));
-                    Promise.resolve(secondResp.data).then((data) => Object.assign(beatmap_score, data));
+                    Promise.resolve(secondResp.data).then((data) => {
+                        Object.assign(beatmap_score, data);
+                        leaderboard = data.map(beatmapScoreToLeaderboardSlot);
+                    });
                 })).catch((error) => {
                     console.error(error);
                 });
@@ -413,23 +449,15 @@ socket.api_v2((data) => {
                     setTimeout(function () {
                         if (isEmptyObject(beatmap_data) !== true) {
                             var s = beatmap_data.approved;
-                            if (s == 4 || s == 3 || s == 2 || s == 1) {
-                                create_ranking_panel();
-                            }
-                            else if (s == 0 || s == -1 || s == -2) {
-                                if (slots !== null) {
-                                    load_slots(slots, "Global Ranking");
-                                }
-                            }
+                            load_slots(leaderboard, "Global Ranking");
                         }
                     }, 1000);
                 }
-                else if (hasOnlineLeaderboard) {
-                    setTimeout(create_ranking_panel, 1000);
-                } else if (rankedStatus == RANKED_STATUS_PENDING) { //pending(no ranking)
+                else {
                     setTimeout(function () {
-                        if (slots !== null) {
-                            load_slots(slots, "Local Ranking");
+                        console.log(leaderboard);
+                        if (leaderboard !== null) {
+                            load_slots(leaderboard, "Local Ranking");
                         }
                     }, 1000);
                 }
@@ -448,7 +476,7 @@ socket.api_v2((data) => {
                     position = 0;
                     rank_container.style.top = '-6900px';
                     temp = true;
-                    slots = {};
+                    slots = [];
                 }, 500);
             }
         }
@@ -502,152 +530,7 @@ socket.api_v2((data) => {
                         rank_percent_now.innerHTML = play.combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
                     }
                 }
-
-                temp = true;
-                if (hasOnlineLeaderboard || ranked_check == 1) {
-                    while (temp == true) {
-                        if (position == 0) {
-                            if (expected_temp <= beatmap_score[position].score) {
-                                let rank_down_box = document.getElementById(`rank_${position}`);
-                                let rank_down_box_number = document.getElementById(`rank_number_${position}`);
-                                rank_down_box.style.top = (position * 88) + 'px';
-                                rank_box_now.style.top = ((position + 1) * 88) + 'px';
-                                position = position + 1;
-                                rank_now.innerHTML = '#' + (position + 1);
-                                rank_down_box_number.innerHTML = '#' + (position);
-                            } else {
-                                temp = false;
-                                break;
-                            }
-                        } else {
-                            if (expected_temp > parseInt(beatmap_score[position - 1].score)) {
-                                let rank_up_box = document.getElementById(`rank_${position - 1}`);
-                                let rank_up_box_number = document.getElementById(`rank_number_${position - 1}`);
-                                rank_up_box.style.top = (position * 88) + 'px';
-                                rank_box_now.style.top = ((position - 1) * 88) + 'px';
-                                position = position - 1;
-                                rank_up_box_number.innerHTML = '#' + (position + 2);
-                                rank_now.innerHTML = '#' + (position + 1);
-                                if (Object.keys(beatmap_score).length <= 4) {
-                                    rank_container.style.top = '0px';
-                                } else if (position == 0 || position == 1 || position == 2) {
-                                    rank_container.style.top = '0px';
-                                } else if (position == Object.keys(beatmap_score).length || position == (Object.keys(beatmap_score).length - 1) || position == (Object.keys(beatmap_score).length) - 2) {
-                                    rank_container.style.top = (0 - (Object.keys(beatmap_score).length - 7) * 88) + 'px';
-                                } else {
-                                    rank_container.style.top = (0 - (position - 2) * 88) + 'px';
-                                }
-                            } else {
-                                if (position == Object.keys(beatmap_score).length) {
-                                    if (Object.keys(beatmap_score).length >= 100) {
-                                        rank_now.innerHTML = '#??';
-                                    } else {
-                                        rank_now.innerHTML = '#' + Object.keys(beatmap_score).length;
-                                    }
-                                    temp = false;
-                                    break;
-                                } else {
-                                    if (expected_temp <= beatmap_score[position].score) {
-                                        let rank_down_box = document.getElementById(`rank_${position}`);
-                                        let rank_down_box_number = document.getElementById(`rank_number_${position}`);
-                                        rank_down_box.style.top = ((position) * 88) + 'px';
-                                        rank_box_now.style.top = ((position + 1) * 88) + 'px';
-                                        position = position + 1;
-                                        rank_now.innerHTML = '#' + (position + 1);
-                                        rank_down_box_number.innerHTML = '#' + (position);
-
-
-                                        if (Object.keys(beatmap_score).length <= 4) {
-                                            rank_container.style.top = '0px';
-                                        } else if (position == 0 || position == 1 || position == 2) {
-                                            rank_container.style.top = '0px';
-                                        } else if (position == Object.keys(beatmap_score).length || position == (Object.keys(beatmap_score).length - 1) || position == (Object.keys(beatmap_score).length) - 2) {
-                                            rank_container.style.top = (0 - (Object.keys(beatmap_score).length - 7) * 88) + 'px';
-                                        } else {
-                                            rank_container.style.top = (0 - (position - 2) * 88) + 'px';
-                                        }
-                                    } else {
-                                        temp = false;
-                                        break;
-                                    }
-
-                                }
-                            }
-                        }
-                    }
-                } else if (rankedStatus == RANKED_STATUS_PENDING || ranked_check == RANKED_STATUS_PENDING) {
-                    while (temp == true) {
-                        if (position == 0) {
-                            // 포지션이 최상단 일 떄
-                            if (expected_temp <= slots[position].score) {
-                                let rank_down_box = document.getElementById(`rank_${position}`);
-                                let rank_down_box_number = document.getElementById(`rank_number_${position}`);
-                                rank_down_box.style.top = (position * 88) + 'px';
-                                rank_box_now.style.top = ((position + 1) * 88) + 'px';
-                                position = position + 1;
-                                rank_now.innerHTML = '#' + (position + 1);
-                                rank_down_box_number.innerHTML = '#' + (position);
-                            } else {
-                                temp = false;
-                                break;
-                            }
-                        } else {
-                            if (expected_temp > slots[position - 1].score) {
-                                let rank_up_box = document.getElementById(`rank_${position - 1}`);
-                                let rank_up_box_number = document.getElementById(`rank_number_${position - 1}`);
-                                rank_up_box.style.top = (position * 88) + 'px';
-                                rank_box_now.style.top = ((position - 1) * 88) + 'px';
-                                position = position - 1;
-                                rank_now.innerHTML = '#' + (position + 1);
-                                rank_up_box_number.innerHTML = '#' + (position + 2);
-
-                                if (slots.length - 1 <= 4) {
-                                    rank_container.style.top = '0px';
-                                } else if (position == 0 || position == 1 || position == 2) {
-                                    rank_container.style.top = '0px';
-                                } else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
-                                    rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
-                                } else {
-                                    rank_container.style.top = (0 - (position - 2) * 88) + 'px';
-                                }
-                            } else {
-                                if (position == slots.length - 1) {
-                                    if (slots.length - 1 >= 100) {
-                                        rank_now.innerHTML = '#Out';
-                                    } else {
-                                        rank_now.innerHTML = '#' + (slots.length);
-                                    }
-                                    temp = false;
-                                    break;
-                                } else {
-                                    if (expected_temp <= slots[position].score) {
-                                        let rank_down_box = document.getElementById(`rank_${position}`);
-                                        let rank_down_box_number = document.getElementById(`rank_number_${position}`);
-                                        rank_down_box.style.top = ((position) * 88) + 'px';
-                                        rank_box_now.style.top = ((position + 1) * 88) + 'px';
-                                        position = position + 1;
-                                        rank_now.innerHTML = '#' + (position + 1);
-                                        rank_down_box_number.innerHTML = '#' + (position);
-
-                                        if (slots.length - 1 <= 4) {
-                                            rank_container.style.top = '0px';
-                                        } else if (position == 0 || position == 1 || position == 2) {
-                                            rank_container.style.top = '0px';
-                                        } else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
-                                            rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
-                                        } else {
-                                            rank_container.style.top = (0 - (position - 2) * 88) + 'px';
-                                        }
-                                    } else {
-                                        temp = false;
-                                        break;
-                                    }
-
-                                }
-                            }
-                        }
-                    }
-                }
+                update_leaderboard();
             }
         }
     } catch (err) {
