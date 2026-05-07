@@ -137,7 +137,7 @@ function slotToLeaderboardSlot(slot) {
  * @returns {LeaderboardSlot}
  */
 function beatmapScoreToLeaderboardSlot(beatmapScore) {
-    hits = {
+    let hits = {
         300: parseInt(beatmapScore["count300"]),
         100: parseInt(beatmapScore["count100"]),
         50: parseInt(beatmapScore["count50"]),
@@ -311,7 +311,10 @@ function load_slots(slots, rankingTitle) {
     startSwitch();
 }
 
-function update_leaderboard() {
+/**
+ * @param {number} expected_temp 
+ */
+function update_leaderboard(expected_temp) {
     temp = true;
     while (temp == true) {
         if (position == 0) {
@@ -449,6 +452,7 @@ socket.api_v2((data) => {
                     setTimeout(function () {
                         if (isEmptyObject(beatmap_data) !== true) {
                             var s = beatmap_data.approved;
+                            console.log("111")
                             load_slots(leaderboard, "Global Ranking");
                         }
                     }, 1000);
@@ -530,7 +534,7 @@ socket.api_v2((data) => {
                         rank_percent_now.innerHTML = play.combo.max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
                     }
                 }
-                update_leaderboard();
+                update_leaderboard(expected_temp);
             }
         }
     } catch (err) {
