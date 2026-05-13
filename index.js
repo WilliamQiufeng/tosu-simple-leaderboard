@@ -56,7 +56,6 @@ function startSwitch() {
 
 let t_player;
 let t_score = 0;
-let t_total;
 
 let bg_value = '';
 
@@ -244,6 +243,87 @@ function formatAccuracy(accuracy) {
 }
 function formatCombo(combo) {
     return combo.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + 'x';
+}
+
+function scoreV2ComboValue(comboIndex, firstObjectValue, logBase, logThreshold) {
+    if (comboIndex <= 1) {
+        return firstObjectValue;
+    }
+    if (comboIndex < logThreshold) {
+        return Math.log(comboIndex) / Math.log(logBase);
+    }
+    return Math.log(logThreshold) / Math.log(logBase);
+}
+
+function scoreV2ComboSum(startCombo, objectCount, firstObjectValue, logBase, logThreshold, maxHitValue) {
+    let comboSum = 0;
+    for (let k = 1; k <= objectCount; k++) {
+        comboSum += maxHitValue * scoreV2ComboValue(startCombo + k, firstObjectValue, logBase, logThreshold);
+    }
+    return comboSum;
+}
+
+/**
+ * Predicts the final osu! ScoreV2 score if every remaining object is hit as MAX.
+ *
+ * @param {number} totalObjects N, the total number of hit objects in the map.
+ * @param {number} currentObjects t, the number of hit objects already played.
+ * @param {number} currentCombo combo, reset to 0 after a miss.
+ * @param {number} currentAccuracy acc, from 0 to 1.
+ * @param {number} currentScore score_now, the current ScoreV2 score.
+ * @param {number} accuracyScoreWeight ScoreV2 accuracy component weight.
+ * @param {number} comboScoreWeight ScoreV2 combo component weight.
+ * @param {number} maxHitValue Maximum hit value used by the combo sum.
+ * @param {number} firstObjectValue f(1).
+ * @param {number} logBase Base used by f(i)'s logarithm.
+ * @param {number} logThreshold Combo index where f(i) caps.
+ * @returns {number}
+ */
+function predictFinalScoreV2Score(
+    totalObjects, currentObjects, currentCombo, currentAccuracy, currentScore,
+    accuracyScoreWeight = 800000,
+    comboScoreWeight = 200000,
+    maxHitValue = 300,
+    firstObjectValue = 0.5,
+    logBase = 4,
+    logThreshold = 400
+) {
+    if (totalObjects <= 0 || currentObjects < 0 || currentObjects > totalObjects) {
+        return 0;
+    }
+    if (currentObjects === 0) {
+        return accuracyScoreWeight + comboScoreWeight;
+    }
+
+    const accuracy = Math.max(0, Math.min(1, currentAccuracy));
+    const remainingObjects = totalObjects - currentObjects;
+    const currentAccuracyScore = accuracyScoreWeight * Math.pow(accuracy, 2 + 2 * accuracy) * currentObjects / totalObjects;
+    const currentComboScore = currentScore - currentAccuracyScore;
+    const maxComboSum = scoreV2ComboSum(0, totalObjects, firstObjectValue, logBase, logThreshold, maxHitValue);
+
+    if (maxComboSum <= 0) {
+        return 0;
+    }
+
+    const futureComboSum = scoreV2ComboSum(currentCombo, remainingObjects, firstObjectValue, logBase, logThreshold, maxHitValue);
+    const finalAccuracy = (accuracy * currentObjects + remainingObjects) / totalObjects;
+    const finalComboScore = currentComboScore + comboScoreWeight * futureComboSum / maxComboSum;
+    const finalAccuracyScore = accuracyScoreWeight * Math.pow(finalAccuracy, 2 + 2 * finalAccuracy);
+
+    console.log({
+        accuracy,
+        remainingObjects,
+        totalObjects,
+        currentScore,
+        currentComboScore,
+        currentAccuracyScore,
+        futureComboSum,
+        maxComboSum,
+        finalComboScore,
+        finalAccuracyScore,
+        finalAccuracy
+    });
+    return finalComboScore + finalAccuracyScore;
 }
 
 function setSubsection(subsection, accuracy, combo) {
@@ -460,9 +540,9 @@ socket.api_v2((data) => {
                 leaderboard = data.leaderboard.map(slotToLeaderboardSlot);
             }
         }
-        if (t_total !== play.hits.geki + play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0]) {
-            t_total = play.hits.geki + play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0];
-        }
+
+        /** @type {number} */
+        let t_total = play.hits.geki + play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0];
 
         let beatmapId = data.beatmap.id;
         let rankedStatus = data.beatmap.status.number;
@@ -531,7 +611,16 @@ socket.api_v2((data) => {
                     }
                 }
                 let expected_temp = 0;
-                if (t_total == 0) {
+                if (score_v2) {
+                    let total_hits = data.beatmap.stats.objects.total + data.beatmap.stats.objects.holds;
+                    expected_temp = predictFinalScoreV2Score(
+                        total_hits,
+                        t_total,
+                        play.combo.current,
+                        play.accuracy / 100,
+                        t_score
+                    ).toFixed(0);
+                } else if (t_total == 0) {
                     expected_temp = 0;
                 } else if (play.hits[300] + play.hits.katu + play.hits[100] + play.hits[50] + play.hits[0] == 0) {
                     expected_temp = 1000000;
