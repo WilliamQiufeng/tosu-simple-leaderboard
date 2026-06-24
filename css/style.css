@@ -20,10 +20,13 @@ html {
     position:absolute;
     left:0;
     top:300px;
-    width:360px;
+    width:500px;
     height:715px;
     overflow: hidden;
     transition: ease-in-out 500ms;
+    background-color: rgba(0,0,0,0.3);
+    background-size: cover;
+    background-repeat: no-repeat;
 }
 #rank_container{
     position: absolute;
@@ -36,7 +39,6 @@ html {
     position:absolute;
     width: 358px;
     height:88px;
-    background-color:rgba(0,0,0,0.3);
     transition: ease-in-out 300ms;
 }
 .rank_box::before{
@@ -46,7 +48,7 @@ html {
     left: 0;
     width:100%;
     height: calc(100% + 20px);
-    background-image: url("../parts/background1.png");
+    background-image: url("../parts/background1.jpg");
     background-size: cover;
     opacity: 1;
 }
@@ -54,7 +56,6 @@ html {
     position:absolute;
     width: 352px;
     height:88px;
-    background-color:rgba(0,0,0,0.3);
     transition: ease-in-out 300ms;
 }
 .rank_box_hide::before{
@@ -73,7 +74,7 @@ html {
     width:72px;
     height:72px;
     top:8px;
-    left:90px;
+    left:100px;
     background-color: azure;
     background-size: cover;
     border-radius: 10px;
@@ -83,7 +84,7 @@ html {
     width:72px;
     height:72px;
     top:8px;
-    left:90px;
+    left:100px;
     background-color: #000;
     background-size: cover;
     border-radius: 10px;
@@ -92,8 +93,8 @@ html {
 .rank_id{
     position: absolute;
     top: 35px;
-    left: 175px;
-    width: 175px;
+    left: 185px;
+    width: 227px;
     color: azure;
     font-family: TOMMY;
     font-size: 24pt;
@@ -105,8 +106,8 @@ html {
 .rank_id_hide{
     position: absolute;
     top: 35px;
-    left: 175px;
-    width: 175px;
+    left: 185px;
+    width: 227px;
     color: azure;
     font-family: TOMMY;
     font-size: 24pt;
@@ -119,7 +120,7 @@ html {
 .rank_score{
     position: absolute;
     top: 35px;
-    left: 175px;
+    left: 185px;
     width: 175px;
     color: azure;
     font-family: TOMMY;
@@ -134,7 +135,7 @@ html {
 .rank_score_hide{
     position: absolute;
     top: 35px;
-    left: 175px;
+    left: 185px;
     width: 175px;
     color: azure;
     font-family: TOMMY;
@@ -147,18 +148,7 @@ html {
     transform: translateY(25px);
 }
 .rank_percent{
-    position: absolute;
-    top: 5px;
-    left: 175px;
-    width: 175px;
-    color: azure;
-    font-family: TOMMY;
-    font-size: 24pt;
-    font-weight: bold;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    opacity: 1;
+   display: none;
 }
 .rank{
     position: absolute;

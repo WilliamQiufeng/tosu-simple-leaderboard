@@ -1,9 +1,17 @@
 [
     {
+        "uniqueID": "mode",
+        "type": "text",
+        "title": "Data Source",
+        "description": "Use api or local",
+        "options": "",
+        "value": "local"
+    },
+    {
         "uniqueID": "api",
         "type": "text",
-        "title": "osu! API Key",
-        "description": "Required for leaderboard score lookups",
+        "title": "osu! API Key (v1)",
+        "description": "For global ranking scores",
         "options": "",
         "value": ""
     },
@@ -30,14 +38,6 @@
         "description": "Use hide or reveal",
         "options": "",
         "value": "hide"
-    },
-    {
-        "uniqueID": "sub",
-        "type": "text",
-        "title": "Secondary Stat",
-        "description": "Use acc or combo",
-        "options": "",
-        "value": "acc"
     },
     {
         "uniqueID": "uid",

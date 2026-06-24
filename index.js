@@ -13,6 +13,7 @@ let settingsInitialized = false;
 let api = "";
 let axios = window.axios;
 let uid = "";
+let dataMode = "local";
 
 const FILTERS_V2 = [
     'play',
@@ -20,6 +21,7 @@ const FILTERS_V2 = [
     'leaderboard',
     'state',
     'beatmap',
+    'settings',
     'clients'
 ]
 
@@ -58,6 +60,9 @@ let t_player;
 let t_score = 0;
 
 let bg_value = '';
+let bg_opacity = 1;
+let noOnlineBoard = false;
+let lastTosuSlots = [];
 
 let p_index;
 const PROFILE_HIDE = 1;
@@ -100,6 +105,7 @@ var v2 = 0x20000000;
 
 /** @type {LeaderboardSlot[]} */
 let leaderboard = [];
+let lastType = '';
 
 const LEADERBOARD_SLOT = 0;
 const LEADERBOARD_API = 1;
@@ -169,6 +175,11 @@ socket.commands((data) => {
         const { command, message } = data;
 
         if (command == 'getSettings') {
+            if (message['mode'] != null) {
+                contents.mode = message['mode'];
+                dataMode = contents.mode;
+            }
+
             if (message['api'] != null) {
                 contents.api = message['api'];
                 api = contents.api;
@@ -176,24 +187,13 @@ socket.commands((data) => {
 
             if (message['background'] != null) {
                 contents.background = message['background'];
-
-                if (contents.background == "black") {
-                    bg_value = 'rgba( 0, 0, 0, 0.35 )';
-                }
-                else if (contents.background == "white") {
-                    bg_value = 'rgba( 255, 255, 255, 0.1 )';
-                }
+                bg_value = contents.background === 'black' ? '0,0,0' : '30,30,30';
             }
 
             if (message['opacity'] != null) {
                 contents.opacity = message['opacity'];
-
-                if (contents.opacity == "100%") {
-                    leaderboard_section.style.background = "black";
-                }
-                else if (contents.opacity == "0%") {
-                    leaderboard_section.style.background = "";
-                }
+                const p = parseFloat(contents.opacity);
+                bg_opacity = isNaN(p) ? 1 : p / 100;
             }
 
             if (message['profile'] != null) {
@@ -207,25 +207,11 @@ socket.commands((data) => {
                 }
             }
 
-            if (message['sub'] != null) {
-                contents.sub = message['sub'];
-
-                if (contents.sub == "acc") {
-                    s_index = SUB_ACC;
-                }
-                else if (contents.sub == "combo") {
-                    s_index = SUB_COMBO;
-                }
-                else {
-                    s_index = SUB_NONE;
-                }
-
-            }
-
             if (message['uid'] != null) {
                 contents.uid = message['uid'];
                 uid = contents.uid;
             }
+
             settingsInitialized = true;
         }
     } catch (error) {
@@ -305,10 +291,13 @@ function predictFinalScoreV2Score(
         return 0;
     }
 
-    const futureComboSum = scoreV2ComboSum(currentCombo, remainingObjects, firstObjectValue, logBase, logThreshold, maxHitValue);
-    const finalAccuracy = (accuracy * currentObjects + remainingObjects) / totalObjects;
+    // 修改点1：未来每个音符的 combo 基础分使用当前平均基础分 (accuracy * maxHitValue)
+    const avgB = accuracy * maxHitValue;
+    const futureComboSum = scoreV2ComboSum(currentCombo, remainingObjects, firstObjectValue, logBase, logThreshold, avgB);
     const finalComboScore = currentComboScore + comboScoreWeight * futureComboSum / maxComboSum;
-    const finalAccuracyScore = accuracyScoreWeight * Math.pow(finalAccuracy, 2 + 2 * finalAccuracy);
+
+    // 修改点2：准确度部分最终分直接用当前 accuracy，不再提高
+    const finalAccuracyScore = accuracyScoreWeight * Math.pow(accuracy, 2 + 2 * accuracy);
 
     console.log({
         accuracy,
@@ -320,8 +309,7 @@ function predictFinalScoreV2Score(
         futureComboSum,
         maxComboSum,
         finalComboScore,
-        finalAccuracyScore,
-        finalAccuracy
+        finalAccuracyScore
     });
     return finalComboScore + finalAccuracyScore;
 }
@@ -346,7 +334,7 @@ function setSubsection(subsection, accuracy, combo) {
  * @param {string} rankingTitle 
  */
 function load_slots(slots, rankingTitle) {
-    for (var i = 0; i < slots.length - 1; i++) {
+    for (var i = 0; i < slots.length; i++) {
         if (p_index == PROFILE_REVEAL) {
             rank_container.innerHTML += '<div id="rank_' + i + '" class="rank_box"> \n';
         } else if (p_index == PROFILE_HIDE) {
@@ -358,7 +346,9 @@ function load_slots(slots, rankingTitle) {
         if (p_index == PROFILE_REVEAL) {
             rank_temp.innerHTML = '<div id="rank_pic_' + i + '" class="rank_pic"></div> \n <div id="rank_pic_opa"></div> \n <div id="rank_id_' + i + '" class="rank_id"></div> \n <div id="rank_score_' + i + '" class="rank_score">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank">#' + (i + 1) + '</div>';
             let rank_pic = document.getElementById(`rank_pic_${i}`);
-            rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${slots[i].id}')`;
+            // 如果 id 有效且不为 0，使用该玩家的头像；否则使用自己的头像 (uid)
+            const avatarId = (slots[i].id && slots[i].id !== 0) ? slots[i].id : uid;
+            rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${avatarId}?t=${Date.now()}')`;
         } else if (p_index == PROFILE_HIDE) {
             rank_temp.innerHTML = '<div id="rank_id_' + i + '" class="rank_id_hide"></div> \n <div id="rank_score_' + i + '" class="rank_score_hide">0</div> \n <div id="rank_percent_' + i + '" class="rank_percent">00.00%</div> \n <div id="rank_number_' + i + '" class="rank_hide">#' + (i + 1) + '</div>';
         }
@@ -381,12 +371,12 @@ function load_slots(slots, rankingTitle) {
         rank_container.innerHTML += '<div id="rank_box_now" class="rank_box_hide"> \n';
     }
     let rank_temp = document.getElementById(`rank_box_now`);
-    rank_temp.style.top = ((slots.length - 1) * 88) + 'px';
+    rank_temp.style.top = (slots.length * 88) + 'px';
 
     if (p_index == PROFILE_REVEAL) {
         rank_temp.innerHTML = '<div id="rank_pic_now" class="rank_pic"></div> \n <div id="rank_id_now" class="rank_id"></div> \n <div id="rank_score_now" class="rank_score">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank">#?</div>';
         let rank_pic = document.getElementById("rank_pic_now");
-        rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${uid}')`;
+        rank_pic.style.backgroundImage = `url('https://a.ppy.sh/${uid}?t=${Date.now()}')`;
     } else if (p_index == PROFILE_HIDE) {
         rank_temp.innerHTML = '<div id="rank_id_now" class="rank_id_hide"></div> \n <div id="rank_score_now" class="rank_score_hide">0</div> \n <div id="rank_percent_now" class="rank_percent">00.00%</div> \n <div id="rank_now" class="rank_hide">#?</div>';
     }
@@ -401,23 +391,32 @@ function load_slots(slots, rankingTitle) {
     rank_box_now = document.getElementById("rank_box_now");
 
     isCompleteRank = true;
-    position = slots.length - 1;
+    position = slots.length;
 
-    if (slots.length - 1 <= 4) {
+    if (slots.length <= 4) {
         rank_container.style.top = '0px';
     }
     //#1, #2, #3
     else if (position == 0 || position == 1 || position == 2) {
         rank_container.style.top = '0px';
     } //#51, #50, #49
-    else if (position == slots.length - 1 || position == (slots.length - 2) || position == (slots.length - 3)) {
-        rank_container.style.top = ((0 - (slots.length - 8)) * 88) + 'px';
+    else if (position == slots.length || position == (slots.length - 1) || position == (slots.length - 2)) {
+        rank_container.style.top = ((0 - (slots.length - 7)) * 88) + 'px';
     } else {
         rank_container.style.top = (0 - (position - 2) * 88) + 'px';
     }
     leaderboard_section.style.opacity = 1;
-    document.getElementById("ranking_title").style.opacity = "1";
-    document.getElementById("ranking_title").innerText = rankingTitle;
+
+    // 标题和排行榜主体统一使用半透明底色填充
+    const baseBg = `rgba(${bg_value}, ${bg_opacity})`;
+    const titleEl = document.getElementById("ranking_title");
+    titleEl.style.opacity = "1";
+    titleEl.style.backgroundImage = 'none';
+    titleEl.style.backgroundColor = baseBg;
+    titleEl.innerText = noOnlineBoard ? "Local Ranking" : rankingTitle;
+    leaderboard_section.style.backgroundImage = 'none';
+    leaderboard_section.style.backgroundColor = baseBg;
+    rank_container.style.backgroundColor = 'transparent';
     startSwitch();
 }
 
@@ -428,7 +427,6 @@ function update_leaderboard(expected_temp) {
     temp = true;
     while (temp == true) {
         if (position == 0) {
-            // 포지션이 최상단 일 떄
             if (expected_temp <= leaderboard[position].score) {
                 let rank_down_box = document.getElementById(`rank_${position}`);
                 let rank_down_box_number = document.getElementById(`rank_number_${position}`);
@@ -451,22 +449,18 @@ function update_leaderboard(expected_temp) {
                 rank_now.innerHTML = '#' + (position + 1);
                 rank_up_box_number.innerHTML = '#' + (position + 2);
 
-                if (leaderboard.length - 1 <= 4) {
+                if (leaderboard.length <= 4) {
                     rank_container.style.top = '0px';
                 } else if (position == 0 || position == 1 || position == 2) {
                     rank_container.style.top = '0px';
-                } else if (position == leaderboard.length - 1 || position == (leaderboard.length - 2) || position == (leaderboard.length - 3)) {
-                    rank_container.style.top = ((0 - (leaderboard.length - 8)) * 88) + 'px';
+                } else if (position == leaderboard.length || position == (leaderboard.length - 1) || position == (leaderboard.length - 2)) {
+                    rank_container.style.top = ((0 - (leaderboard.length - 7)) * 88) + 'px';
                 } else {
                     rank_container.style.top = (0 - (position - 2) * 88) + 'px';
                 }
             } else {
-                if (position == leaderboard.length - 1) {
-                    if (leaderboard.length - 1 >= 100) {
-                        rank_now.innerHTML = '#Out';
-                    } else {
-                        rank_now.innerHTML = '#' + (leaderboard.length);
-                    }
+                if (position >= leaderboard.length) {
+                    rank_now.innerHTML = '#?';
                     temp = false;
                     break;
                 } else {
@@ -479,12 +473,12 @@ function update_leaderboard(expected_temp) {
                         rank_now.innerHTML = '#' + (position + 1);
                         rank_down_box_number.innerHTML = '#' + (position);
 
-                        if (leaderboard.length - 1 <= 4) {
+                        if (leaderboard.length <= 4) {
                             rank_container.style.top = '0px';
                         } else if (position == 0 || position == 1 || position == 2) {
                             rank_container.style.top = '0px';
-                        } else if (position == leaderboard.length - 1 || position == (leaderboard.length - 2) || position == (leaderboard.length - 3)) {
-                            rank_container.style.top = ((0 - (leaderboard.length - 8)) * 88) + 'px';
+                        } else if (position == leaderboard.length || position == (leaderboard.length - 1) || position == (leaderboard.length - 2)) {
+                            rank_container.style.top = ((0 - (leaderboard.length - 7)) * 88) + 'px';
                         } else {
                             rank_container.style.top = (0 - (position - 2) * 88) + 'px';
                         }
@@ -525,6 +519,15 @@ socket.api_v2((data) => {
             return;
         }
 
+        noOnlineBoard = data.beatmap?.status?.number !== 4
+            && data.beatmap?.status?.number !== 6
+            && data.beatmap?.status?.number !== 7;
+
+        // 持续捕获 tosu 最新本地数据，供 API fallback 使用
+        if (data.leaderboard && data.leaderboard.length > 0) {
+            lastTosuSlots = data.leaderboard;
+        }
+
         let play = data.play;
         api = contents.api;
         uid = contents.uid;
@@ -532,13 +535,6 @@ socket.api_v2((data) => {
         t_player = play.playerName;
         if (t_player == '') {
             t_player = "unknown";
-        }
-
-        if (slots !== data.leaderboard && state === "play") {
-            slots = data.leaderboard;
-            if (leaderboard_type === LEADERBOARD_SLOT) {
-                leaderboard = data.leaderboard.map(slotToLeaderboardSlot);
-            }
         }
 
         /** @type {number} */
@@ -549,51 +545,121 @@ socket.api_v2((data) => {
         let mods = data.play.mods.number;
 
         const score_v2 = (mods & v2) === v2;
-        const hasOnlineLeaderboard = rankedStatus == RANKED_STATUS_RANKED || rankedStatus == RANKED_STATUS_QUALIFIED || rankedStatus == RANKED_STATUS_LOVED;
 
+        // ── 状态切换 ──
         if (state !== data.state.name) {
+            const prevState = state;
             state = data.state.name;
             console.log(data.state)
 
             if (state === "play") {
+                // 重新进图（含 replay、切模式重进）时重置
+                if (prevState !== undefined) {
+                    reset();
+                }
                 console.log(data.beatmap.status);
-                axios.all([axios.get("/get_beatmaps", {
-                    baseURL: "https://osu.ppy.sh/api",
-                    params: {
-                        k: `${api}`,
-                        b: `${beatmapId}`,
-                    },
-                }), axios.get("/get_scores", {
-                    baseURL: "https://osu.ppy.sh/api",
-                    params: {
-                        k: `${api}`,
-                        b: `${beatmapId}`,
-                        m: `3`,
-                        limit: 100 // 1-100
-                    },
-                })]).then(axios.spread((firstResp, secondResp) => {
-                    Promise.resolve(firstResp.data[0]).then((data) => Object.assign(beatmap_data, data));
-                    Promise.resolve(secondResp.data).then((data) => {
-                        Object.assign(beatmap_score, data);
-                        if (data.length > slots.length) {
-                            leaderboard_type = LEADERBOARD_API;
-                            leaderboard = data.map(beatmapScoreToLeaderboardSlot);
-                        }
+
+                // API 模式
+                if (dataMode === "api" && api) {
+                    axios.all([axios.get("/get_beatmaps", {
+                        baseURL: "https://osu.ppy.sh/api",
+                        params: { k: `${api}`, b: `${beatmapId}` },
+                    }), axios.get("/get_scores", {
+                        baseURL: "https://osu.ppy.sh/api",
+                        params: { k: `${api}`, b: `${beatmapId}`, m: `3`, limit: 100 },
+                    })]).then(axios.spread((firstResp, secondResp) => {
+                        Promise.resolve(firstResp.data[0]).then((d) => Object.assign(beatmap_data, d));
+                        Promise.resolve(secondResp.data).then((d) => {
+                            Object.assign(beatmap_score, d);
+                            if (d.length > 0) {
+                                leaderboard_type = LEADERBOARD_API;
+                                leaderboard = d.map(beatmapScoreToLeaderboardSlot);
+                                slots = d;
+                            } else {
+                                // API 无数据，fallback 到本地排行榜
+                                leaderboard_type = LEADERBOARD_SLOT;
+                                leaderboard = (lastTosuSlots || []).map(slotToLeaderboardSlot);
+                            }
+                            isCompleteRank = false;
+                            rank_container.innerHTML = '';
+                            const title = noOnlineBoard ? "Local Ranking" : "Global Ranking";
+                            load_slots(leaderboard, title);
+                        });
+                    })).catch((error) => {
+                        console.error(error);
                     });
-                })).catch((error) => {
-                    console.error(error);
-                });
-                setTimeout(function () {
-                    console.log(leaderboard);
-                    if (leaderboard !== null) {
-                        load_slots(leaderboard, "Ranking");
-                    }
-                }, 1000);
+                }
+
             } else {
                 reset();
             }
         }
 
+        // ── 排行榜类型变更（独立于数据更新，解决 tosu 时序问题）──
+        if (dataMode === "local" && state === "play") {
+            const typeNum = data.settings?.leaderboard?.type?.number;
+            if (typeNum !== undefined) {
+                const typeNames = ['local', 'global', 'selectedmods', 'friends', 'country'];
+                const currentType = typeNames[typeNum] || 'local';
+                if (currentType !== lastType && isCompleteRank) {
+                    const typeMap = {
+                        local: "Local Ranking",
+                        global: "Global Ranking",
+                        selectedmods: "Global Ranking(mods)",
+                        friends: "Friends Ranking",
+                        country: "Country Ranking"
+                    };
+                    const typeName = noOnlineBoard ? 'local' : currentType;
+                    document.getElementById("ranking_title").innerText = typeMap[typeName] || "Local Ranking";
+                }
+            }
+        }
+
+        // ── 本地排行榜实时同步 ──
+        if (dataMode === "local" && state === "play" && data.leaderboard && data.leaderboard.length > 0) {
+            if (leaderboard_type === LEADERBOARD_SLOT) {
+                const newSlots = data.leaderboard;
+                const typeNum = data.settings?.leaderboard?.type?.number;
+                const typeNames = ['local', 'global', 'selectedmods', 'friends', 'country'];
+                let currentType = typeNum !== undefined ? typeNames[typeNum] || 'local' : lastType;
+                let typeChanged = currentType !== lastType;
+                // typeNum 缺失 + 类型未变 + 数据变了 → 玩家名单不同 = 切到了 local
+                if (!typeChanged && typeNum === undefined && newSlots !== slots) {
+                    const oldNames = slots.map(s => s.name).join(',');
+                    const newNames = newSlots.map(s => s.name).join(',');
+                    if (oldNames !== newNames) {
+                        currentType = 'local';
+                        typeChanged = true;
+                    }
+                }
+                if (newSlots !== slots || typeChanged) {
+                    lastType = currentType;
+                    slots = newSlots;
+                    if (!isCompleteRank || typeChanged) {
+                        leaderboard = newSlots.map(slotToLeaderboardSlot);
+                        const typeName = noOnlineBoard ? 'local' : currentType;
+                        const typeMap = {
+                            local: "Local Ranking",
+                            global: "Global Ranking",
+                            selectedmods: "Global Ranking(mods)",
+                            friends: "Friends Ranking",
+                            country: "Country Ranking"
+                        };
+                        const title = typeMap[typeName] || "Local Ranking";
+                        isCompleteRank = false;
+                        rank_container.innerHTML = '';
+                        load_slots(leaderboard, title);
+                    }
+                }
+            }
+        }
+
+        if (noOnlineBoard && isCompleteRank) {
+            document.getElementById("ranking_title").innerText = "Local Ranking";
+        }
+
+        // ── 分数实时更新 ──
+        console.log(t_score, play.score, isCompleteRank, rankedStatus);
         if (t_score !== play.score) {
             t_score = play.score;
 
@@ -629,7 +695,6 @@ socket.api_v2((data) => {
                 }
                 rank_score_now.innerHTML = expected_temp.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-                setSubsection(rank_percent_now, play.accuracy, play.combo.current);
                 update_leaderboard(expected_temp);
             }
         }
